@@ -18,6 +18,7 @@ public class Sale {
     private double finalAmount;
     private String notes;
     private List<SaleItem> items;  // Line items
+    private int dbItemCount = 0; // Holds item count from DB when items are not fully loaded 
     
     // Default constructor
     public Sale() {
@@ -177,7 +178,12 @@ public class Sale {
      * @return item count
      */
     public int getItemCount() {
-        return items.size();
+        if (!items.isEmpty()) return items.size();
+        return dbItemCount;
+    }
+    
+    public void setItemCount(int dbItemCount) {
+        this.dbItemCount = dbItemCount;
     }
     
     @Override

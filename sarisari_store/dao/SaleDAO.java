@@ -138,7 +138,7 @@ public class SaleDAO {
      * @return Sale object with items, or null
      */
     public Sale getById(int saleId) {
-        String sql = "SELECT s.*, u.full_name as cashier_name FROM sales s " +
+        String sql = "SELECT s.*, u.full_name as cashier_name, (SELECT COUNT(*) FROM sale_items si WHERE si.sale_id = s.sale_id) as item_count FROM sales s " +
                      "JOIN users u ON s.user_id = u.user_id WHERE s.sale_id = ?";
         
         try (Connection conn = getConnection();
@@ -165,7 +165,7 @@ public class SaleDAO {
      */
     public List<Sale> getAll() {
         List<Sale> sales = new ArrayList<>();
-        String sql = "SELECT s.*, u.full_name as cashier_name FROM sales s " +
+        String sql = "SELECT s.*, u.full_name as cashier_name, (SELECT COUNT(*) FROM sale_items si WHERE si.sale_id = s.sale_id) as item_count FROM sales s " +
                      "JOIN users u ON s.user_id = u.user_id ORDER BY s.sale_datetime DESC";
         
         try (Connection conn = getConnection();
@@ -190,7 +190,7 @@ public class SaleDAO {
      */
     public List<Sale> getByDateRange(Date fromDate, Date toDate) {
         List<Sale> sales = new ArrayList<>();
-        String sql = "SELECT s.*, u.full_name as cashier_name FROM sales s " +
+        String sql = "SELECT s.*, u.full_name as cashier_name, (SELECT COUNT(*) FROM sale_items si WHERE si.sale_id = s.sale_id) as item_count FROM sales s " +
                      "JOIN users u ON s.user_id = u.user_id " +
                      "WHERE DATE(s.sale_datetime) BETWEEN ? AND ? " +
                      "ORDER BY s.sale_datetime DESC";
@@ -219,7 +219,7 @@ public class SaleDAO {
      */
     public List<Sale> getTodaySales() {
         List<Sale> sales = new ArrayList<>();
-        String sql = "SELECT s.*, u.full_name as cashier_name FROM sales s " +
+        String sql = "SELECT s.*, u.full_name as cashier_name, (SELECT COUNT(*) FROM sale_items si WHERE si.sale_id = s.sale_id) as item_count FROM sales s " +
                      "JOIN users u ON s.user_id = u.user_id " +
                      "WHERE DATE(s.sale_datetime) = CURDATE() " +
                      "ORDER BY s.sale_datetime DESC";
@@ -387,6 +387,11 @@ public class SaleDAO {
         sale.setDiscountAmount(rs.getDouble("discount_amount"));
         sale.setFinalAmount(rs.getDouble("final_amount"));
         sale.setNotes(rs.getString("notes"));
+        try {
+            sale.setItemCount(rs.getInt("item_count"));
+        } catch (SQLException ignore) {
+            // column might not be requested
+        }
         return sale;
     }
     

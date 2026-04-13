@@ -313,6 +313,43 @@ public class ProductDAO {
     }
     
     /**
+     * Get all restock logs
+     * @return List of RestockLog objects
+     */
+    public List<model.RestockLog> getRestockLogs() {
+        List<model.RestockLog> logs = new ArrayList<>();
+        String sql = "SELECT r.*, p.product_name, u.full_name as cashier_name " +
+                     "FROM restock_log r " +
+                     "JOIN products p ON r.product_id = p.product_id " +
+                     "JOIN users u ON r.user_id = u.user_id " +
+                     "ORDER BY r.restock_date DESC";
+        
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            while (rs.next()) {
+                model.RestockLog log = new model.RestockLog();
+                log.setLogId(rs.getInt("restock_id"));
+                log.setProductId(rs.getInt("product_id"));
+                log.setProductName(rs.getString("product_name"));
+                log.setQuantityAdded(rs.getInt("quantity_added"));
+                log.setPurchasePrice(rs.getDouble("purchase_price"));
+                log.setTotalCost(rs.getDouble("total_cost"));
+                log.setUserId(rs.getInt("user_id"));
+                log.setCashierName(rs.getString("cashier_name"));
+                log.setRestockDate(rs.getTimestamp("restock_date"));
+                logs.add(log);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting restock logs: " + e.getMessage());
+            // It could be that the restock_log table doesn't exist yet! We log it.
+        }
+        
+        return logs;
+    }
+    
+    /**
      * Deduct stock (for sales)
      * @param productId the product ID
      * @param quantity the quantity to deduct

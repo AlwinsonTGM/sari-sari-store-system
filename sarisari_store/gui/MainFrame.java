@@ -11,8 +11,8 @@ import java.util.Date;
 /**
  * MainFrame — Main Application Window
  *
- * Uses a build/rebuild pattern so that the entire UI re-renders
- * when the user toggles Light/Dark mode via the header button.
+ * Builds the main application window with a top header bar,
+ * tabbed content area, status bar, and menu bar.
  */
 public class MainFrame extends JFrame {
 
@@ -23,6 +23,7 @@ public class MainFrame extends JFrame {
     private ProductPanel productPanel;
     private SalesPanel salesPanel;
     private SalesHistoryPanel salesHistoryPanel;
+    private RestockHistoryPanel restockHistoryPanel;
     private UserManagementPanel userManagementPanel;
     private JTabbedPane tabbedPane;
 
@@ -59,43 +60,26 @@ public class MainFrame extends JFrame {
         lblLogo.setForeground(Color.WHITE);
         header.add(lblLogo, BorderLayout.WEST);
 
-        // Right side of header
-        JPanel headerRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 16, 0));
+        // Right side of header — GridBagLayout centers items vertically
+        JPanel headerRight = new JPanel(new GridBagLayout());
         headerRight.setOpaque(false);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(0, 12, 0, 0);
+        gbc.anchor = GridBagConstraints.CENTER;
 
         JLabel lblUser = new JLabel("  " + currentUser.getFullName()
             + "  |  " + currentUser.getRole().toUpperCase());
         lblUser.setFont(ThemeManager.fontBold());
         lblUser.setForeground(Color.WHITE);
-        headerRight.add(lblUser);
-
-        // Theme toggle button
-        JButton btnTheme = new JButton(ThemeManager.isDark() ? "  Light Mode" : "  Dark Mode");
-        btnTheme.setFont(ThemeManager.fontBold());
-        btnTheme.setForeground(Color.WHITE);
-        btnTheme.setContentAreaFilled(false);
-        btnTheme.setOpaque(false);
-        btnTheme.setFocusPainted(false);
-        btnTheme.setBorder(BorderFactory.createCompoundBorder(
-            new javax.swing.border.LineBorder(new Color(255, 255, 255, 130), 1, true),
-            BorderFactory.createEmptyBorder(5, 14, 5, 14)
-        ));
-        btnTheme.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnTheme.addActionListener(e -> {
-            ThemeManager.toggle();
-            buildUI();
-            revalidate();
-            repaint();
-        });
-        headerRight.add(btnTheme);
+        headerRight.add(lblUser, gbc);
 
         // Clock label
         JLabel lblClock = new JLabel();
         lblClock.setFont(ThemeManager.fontBold());
         lblClock.setForeground(Color.WHITE);
-        SimpleDateFormat sdf = new SimpleDateFormat("EEE, MMM dd  •  hh:mm:ss a  ");
+        SimpleDateFormat sdf = new SimpleDateFormat("EEE, MMM dd  \u2022  hh:mm:ss a  ");
         lblClock.setText(sdf.format(new Date()));
-        headerRight.add(lblClock);
+        headerRight.add(lblClock, gbc);
 
         clockTimer = new Timer(1000, e -> lblClock.setText(sdf.format(new Date())));
         clockTimer.start();
@@ -112,11 +96,17 @@ public class MainFrame extends JFrame {
         salesPanel        = new SalesPanel(currentUser);
         productPanel      = new ProductPanel(currentUser);
         salesHistoryPanel = new SalesHistoryPanel();
+        if (currentUser.isAdmin()) {
+            restockHistoryPanel = new RestockHistoryPanel();
+        }
 
         tabbedPane.addTab("   Dashboard  ",   dashboardPanel);
         tabbedPane.addTab("   Point of Sale  ", salesPanel);
         tabbedPane.addTab("   Products  ",     productPanel);
         tabbedPane.addTab("   Sales History  ", salesHistoryPanel);
+        if (currentUser.isAdmin()) {
+            tabbedPane.addTab("   Restock History  ", restockHistoryPanel);
+        }
 
         if (currentUser.isAdmin()) {
             userManagementPanel = new UserManagementPanel();
@@ -129,6 +119,7 @@ public class MainFrame extends JFrame {
             if (sel == dashboardPanel)    dashboardPanel.refreshData();
             else if (sel == productPanel) productPanel.refreshData();
             else if (sel == salesHistoryPanel) salesHistoryPanel.refreshData();
+            else if (sel == restockHistoryPanel && restockHistoryPanel != null) restockHistoryPanel.refreshData();
         });
 
         add(tabbedPane, BorderLayout.CENTER);
@@ -136,7 +127,7 @@ public class MainFrame extends JFrame {
         // ── Status Bar ─────────────────────────────────────────────────────
         JPanel statusBar = new JPanel(new BorderLayout());
         statusBar.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, ThemeManager.border()));
-        statusBar.setBackground(ThemeManager.isDark() ? ThemeManager.D_SURFACE : new Color(226, 232, 240));
+        statusBar.setBackground(new Color(226, 232, 240));
         statusBar.setPreferredSize(new Dimension(0, 28));
 
         JLabel lblStatus = new JLabel("   Logged in as: " + currentUser.getFullName()
@@ -183,16 +174,7 @@ public class MainFrame extends JFrame {
         fileMenu.add(logoutItem);
         fileMenu.add(exitItem);
 
-        JMenu viewMenu = new JMenu("View");
-        JMenuItem toggleTheme = new JMenuItem(ThemeManager.isDark() ? "Switch to Light Mode" : "Switch to Dark Mode");
-        toggleTheme.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK));
-        toggleTheme.addActionListener(e -> {
-            ThemeManager.toggle();
-            buildUI();
-            revalidate();
-            repaint();
-        });
-        viewMenu.add(toggleTheme);
+
 
         JMenu navMenu = new JMenu("Navigate");
         navMenu.setMnemonic(KeyEvent.VK_N);
@@ -200,6 +182,9 @@ public class MainFrame extends JFrame {
         addNavItem(navMenu, "Point of Sale", KeyEvent.VK_S, () -> tabbedPane.setSelectedComponent(salesPanel));
         addNavItem(navMenu, "Products",     KeyEvent.VK_P, () -> tabbedPane.setSelectedComponent(productPanel));
         addNavItem(navMenu, "Sales History", KeyEvent.VK_H, () -> tabbedPane.setSelectedComponent(salesHistoryPanel));
+        if (currentUser.isAdmin() && restockHistoryPanel != null) {
+            addNavItem(navMenu, "Restock History", KeyEvent.VK_R, () -> tabbedPane.setSelectedComponent(restockHistoryPanel));
+        }
         if (currentUser.isAdmin() && userManagementPanel != null) {
             addNavItem(navMenu, "User Management", KeyEvent.VK_U, () -> tabbedPane.setSelectedComponent(userManagementPanel));
         }
@@ -209,11 +194,10 @@ public class MainFrame extends JFrame {
         aboutItem.addActionListener(e -> JOptionPane.showMessageDialog(this,
             "Sari-Sari Store Inventory & Sales System\n\nVersion: 1.0\nBuilt with Java Swing + MySQL\n\n" +
             "Features: POS · Product Management · Stock Tracking\n" +
-            "Capital Expense Tracking · Light/Dark Mode"));
+            "Capital Expense Tracking"));
         helpMenu.add(aboutItem);
 
         menuBar.add(fileMenu);
-        menuBar.add(viewMenu);
         menuBar.add(navMenu);
         menuBar.add(helpMenu);
         setJMenuBar(menuBar);
@@ -230,6 +214,7 @@ public class MainFrame extends JFrame {
         if (sel == dashboardPanel)         dashboardPanel.refreshData();
         else if (sel == productPanel)      productPanel.refreshData();
         else if (sel == salesHistoryPanel) salesHistoryPanel.refreshData();
+        else if (sel == restockHistoryPanel && restockHistoryPanel != null) restockHistoryPanel.refreshData();
     }
 
     private void doLogout() {
