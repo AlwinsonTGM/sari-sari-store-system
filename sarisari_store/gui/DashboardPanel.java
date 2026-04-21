@@ -1,7 +1,7 @@
 package gui;
 
 import dao.ProductDAO;
-import dao.SaleDAO;
+import dao.TransactionDAO;
 import model.Product;
 
 import javax.swing.*;
@@ -20,7 +20,7 @@ import java.util.List;
  */
 public class DashboardPanel extends JPanel {
 
-    private SaleDAO saleDAO;
+    private TransactionDAO transactionDAO;
     private ProductDAO productDAO;
 
     // Today cards
@@ -40,7 +40,7 @@ public class DashboardPanel extends JPanel {
     private DefaultListModel<String> topProductsModel;
 
     public DashboardPanel() {
-        saleDAO = new SaleDAO();
+        transactionDAO = new TransactionDAO();
         productDAO = new ProductDAO();
 
         setLayout(new BorderLayout(15, 15));
@@ -236,8 +236,8 @@ public class DashboardPanel extends JPanel {
     // ─────────────────────────────────────────────────────────────────────────
     public void refreshData() {
         // ── Today ──────────────────────────────────────────────────────────
-        double todaySales   = saleDAO.getTodayTotalSales();
-        double todayProfit  = saleDAO.getTodayProfit();
+        double todaySales   = transactionDAO.getTodayTotalSales();
+        double todayProfit  = transactionDAO.getTodayProfit();
         double capitalToday = productDAO.getTodayRestockCost();
         double netToday     = todayProfit - capitalToday;
 
@@ -250,8 +250,8 @@ public class DashboardPanel extends JPanel {
         lblNetToday.setForeground(netToday >= 0 ? ThemeManager.success() : ThemeManager.danger());
 
         // \u2500\u2500 All-Time \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-        double allRevenue = saleDAO.getAllTimeTotalSales();
-        double allProfit  = saleDAO.getAllTimeProfit();
+        double allRevenue = transactionDAO.getAllTimeTotalSales();
+        double allProfit  = transactionDAO.getAllTimeProfit();
         double allCapital = productDAO.getAllTimeRestockCost();
         double allNet     = allProfit - allCapital;
 
@@ -271,7 +271,7 @@ public class DashboardPanel extends JPanel {
 
         // ── Top Products ───────────────────────────────────────────────────
         topProductsModel.clear();
-        List<Object[]> top = saleDAO.getTopSellingProductsToday(5);
+        List<Object[]> top = transactionDAO.getTopSellingProductsToday(5);
         if (top.isEmpty()) {
             topProductsModel.addElement("  No sales recorded today");
         } else {

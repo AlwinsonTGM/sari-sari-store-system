@@ -262,6 +262,14 @@ public class ProductDAO {
         
         return false;
     }
+
+    /**
+     * Backward-compat overload — ignores userId (user management removed).
+     * @deprecated Use restock(productId, quantity, costPerUnit) instead.
+     */
+    public boolean restock(int productId, int quantity, double costPerUnit, int userId) {
+        return restock(productId, quantity, costPerUnit);
+    }
     
     /**
      * Get total capital spent on restocking today

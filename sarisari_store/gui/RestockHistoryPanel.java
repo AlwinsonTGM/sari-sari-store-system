@@ -40,7 +40,7 @@ public class RestockHistoryPanel extends JPanel {
         add(topPanel, BorderLayout.NORTH);
 
         // Center Panel for Table
-        String[] columns = {"Date/Time", "Product", "Quantity Added", "Purchase Price", "Total Cost", "Restocked By"};
+        String[] columns = {"Date/Time", "Product", "Quantity Added", "Cost/Unit", "Total Cost"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -58,7 +58,6 @@ public class RestockHistoryPanel extends JPanel {
         restockTable.getColumnModel().getColumn(2).setPreferredWidth(100);
         restockTable.getColumnModel().getColumn(3).setPreferredWidth(120);
         restockTable.getColumnModel().getColumn(4).setPreferredWidth(120);
-        restockTable.getColumnModel().getColumn(5).setPreferredWidth(150);
 
         JScrollPane scrollPane = new JScrollPane(restockTable);
         ThemeManager.applyTableTheme(restockTable, scrollPane);
@@ -93,9 +92,8 @@ public class RestockHistoryPanel extends JPanel {
                     dateStr,
                     log.getProductName(),
                     log.getQuantityAdded(),
-                    String.format("₱%.2f", log.getPurchasePrice()),
-                    String.format("₱%.2f", log.getTotalCost()),
-                    log.getCashierName()
+                    String.format("₱%.2f", log.getCostPerUnit()),
+                    String.format("₱%.2f", log.getTotalCost())
             });
             totalCapital += log.getTotalCost();
         }

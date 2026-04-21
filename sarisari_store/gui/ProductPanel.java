@@ -2,7 +2,6 @@ package gui;
 
 import dao.ProductDAO;
 import model.Product;
-import model.User;
 
 import javax.swing.*;
 import javax.swing.border.*;
@@ -30,7 +29,7 @@ import java.util.List;
  */
 public class ProductPanel extends JPanel {
     
-    private User currentUser;
+    private final boolean isOwner;
     private ProductDAO productDAO;
     
     private JTable productTable;
@@ -57,8 +56,8 @@ public class ProductPanel extends JPanel {
     
     private List<Product> currentProducts;
     
-    public ProductPanel(User user) {
-        this.currentUser = user;
+    public ProductPanel(boolean isOwner) {
+        this.isOwner  = isOwner;
         this.productDAO = new ProductDAO();
         
         setLayout(new BorderLayout(10, 10));
@@ -193,7 +192,7 @@ public class ProductPanel extends JPanel {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         buttonPanel.setOpaque(false);
         
-        if (currentUser.isAdmin()) {
+        if (isOwner) {
             JButton btnAdd = new JButton(" Add Product");
             ThemeManager.styleButton(btnAdd, "success");
             btnAdd.addActionListener(e -> showAddProductDialog());
@@ -424,7 +423,7 @@ public class ProductPanel extends JPanel {
             details.add(expiryLbl);
             
             // Edit Button (if admin)
-            if (currentUser.isAdmin()) {
+            if (isOwner) {
                 JButton btnEditCard = new JButton(" Edit");
                 ThemeManager.styleButton(btnEditCard, "primary");
                 btnEditCard.setFont(ThemeManager.fontSmall());
@@ -674,7 +673,7 @@ public class ProductPanel extends JPanel {
                         qty, product.getProductName(), cost),
                     "Confirm Restock", JOptionPane.YES_NO_OPTION);
                 if (confirm == JOptionPane.YES_OPTION) {
-                    if (productDAO.restock(product.getProductId(), qty, product.getPurchasePrice(), currentUser.getUserId())) {
+                    if (productDAO.restock(product.getProductId(), qty, product.getPurchasePrice())) {
                         JOptionPane.showMessageDialog(dialog, "Restocked successfully!\nCapital logged: \u20b1" + String.format("%.2f", cost));
                         dialog.dispose();
                         loadAllProducts();
@@ -722,7 +721,7 @@ public class ProductPanel extends JPanel {
      * Create the product form panel for add/edit dialogs
      */
     private JPanel createProductFormPanel(Product product) {
-        JPanel panel = new JPanel(new GridLayout(10, 2, 10, 5));
+        JPanel panel = new JPanel(new GridLayout(9, 2, 10, 5));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
         // Initialize fields
@@ -739,7 +738,6 @@ public class ProductPanel extends JPanel {
         
         // Populate if editing
         if (product != null) {
-            txtProductCode.setText(product.getProductCode());
             txtProductName.setText(product.getProductName());
             txtCategory.setText(product.getCategory());
             txtUnit.setText(product.getUnit());
@@ -758,10 +756,7 @@ public class ProductPanel extends JPanel {
             txtUnit.setText("piece");
         }
         
-        // Add fields to panel
-        panel.add(new JLabel("Product Code:*"));
-        panel.add(txtProductCode);
-        
+        // Add fields to panel (no product code - removed from schema)
         panel.add(new JLabel("Product Name:*"));
         panel.add(txtProductName);
         
@@ -831,8 +826,7 @@ public class ProductPanel extends JPanel {
      * Validate form input
      */
     private boolean validateForm() {
-        if (txtProductCode.getText().trim().isEmpty() ||
-            txtProductName.getText().trim().isEmpty() ||
+        if (txtProductName.getText().trim().isEmpty() ||
             txtPurchasePrice.getText().trim().isEmpty() ||
             txtSRP.getText().trim().isEmpty() ||
             txtMinStock.getText().trim().isEmpty()) {
@@ -861,7 +855,7 @@ public class ProductPanel extends JPanel {
      */
     private Product getProductFromForm() {
         Product product = new Product();
-        product.setProductCode(txtProductCode.getText().trim());
+        // product_code removed from schema; no-op setProductCode kept for compat
         product.setProductName(txtProductName.getText().trim());
         product.setCategory(txtCategory.getText().trim());
         product.setUnit(txtUnit.getText().trim());

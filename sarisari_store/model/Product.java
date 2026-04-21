@@ -198,4 +198,21 @@ public class Product {
     public String toString() {
         return productName + " (Stock: " + currentStock + ")";
     }
+
+    // ── Backward-compatibility aliases (old field names used by GUI) ──────────
+
+    /** @deprecated Use getCostPerUnit() */
+    public double getPurchasePrice() { return costPerUnit; }
+    /** @deprecated Use setCostPerUnit() */
+    public void setPurchasePrice(double v) { this.costPerUnit = v; }
+
+    /** @deprecated Use getSellPrice() */
+    public double getSrp() { return sellPrice; }
+    /** @deprecated Use setSellPrice() */
+    public void setSrp(double v) { this.sellPrice = v; }
+
+    /** @deprecated product_code removed; returns empty string */
+    public String getProductCode() { return ""; }
+    /** @deprecated product_code removed; no-op */
+    public void setProductCode(String code) { /* no-op */ }
 }

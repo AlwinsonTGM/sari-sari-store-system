@@ -1,11 +1,10 @@
 package gui;
 
 import dao.ProductDAO;
-import dao.SaleDAO;
+import dao.TransactionDAO;
 import model.Product;
-import model.Sale;
-import model.SaleItem;
-import model.User;
+import model.Transaction;
+import model.TransactionItem;
 
 import javax.swing.*;
 import javax.swing.border.*;
@@ -16,182 +15,154 @@ import java.util.List;
 
 /**
  * SalesPanel - Point of Sale (POS) Screen
- * 
+ *
  * Features:
  * - Search and add products to cart
  * - Display cart with quantities and totals
  * - Apply discount
  * - Complete sale (deducts stock automatically)
  * - Clear cart
- * 
+ *
  * Stock is automatically deducted when sale is completed.
- * If stock is insufficient, sale is prevented.
  */
 public class SalesPanel extends JPanel {
-    
-    private User currentUser;
+
+    private final boolean isOwner;
     private ProductDAO productDAO;
-    private SaleDAO saleDAO;
-    
+    private TransactionDAO transactionDAO;
+
     // Cart data
-    private List<SaleItem> cartItems;
-    private Sale currentSale;
-    
+    private List<TransactionItem> cartItems;
+
     // UI Components
-    private JTextField txtSearch;
+    private JTextField    txtSearch;
     private JList<Product> searchResultsList;
     private DefaultListModel<Product> searchResultsModel;
-    private JTable cartTable;
+    private JTable        cartTable;
     private DefaultTableModel cartTableModel;
-    private JLabel lblSubtotal;
-    private JLabel lblDiscount;
-    private JLabel lblTotal;
-    private JTextField txtDiscount;
-    
-    public SalesPanel(User user) {
-        this.currentUser = user;
-        this.productDAO = new ProductDAO();
-        this.saleDAO = new SaleDAO();
-        this.cartItems = new ArrayList<>();
-        this.currentSale = new Sale();
-        
+    private JLabel        lblSubtotal;
+    private JLabel        lblDiscount;
+    private JLabel        lblTotal;
+    private JTextField    txtDiscount;
+
+    public SalesPanel(boolean isOwner) {
+        this.isOwner        = isOwner;
+        this.productDAO     = new ProductDAO();
+        this.transactionDAO = new TransactionDAO();
+        this.cartItems      = new ArrayList<>();
+
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
         setBackground(ThemeManager.bg());
-        
+
         // Title
         JLabel lblTitle = new JLabel(" Point of Sale (POS)");
         lblTitle.setFont(ThemeManager.fontSection());
         lblTitle.setForeground(ThemeManager.primary());
         add(lblTitle, BorderLayout.NORTH);
-        
-        // Center panel: Product search and cart
+
+        // Center: product search + cart
         JPanel centerPanel = new JPanel(new GridLayout(1, 2, 15, 0));
         centerPanel.setOpaque(false);
-        
-        // Left: Product left panel (Tabs for Quick Add and Search)
+
         JTabbedPane leftPanel = new JTabbedPane();
         leftPanel.setFont(new Font("Segoe UI", Font.BOLD, 14));
         ThemeManager.applyTabbedPaneTheme(leftPanel);
-        
-        JComponent quickAddPanel = createQuickAddPanel();
-        JPanel searchPanel = createSearchPanel();
-        
-        leftPanel.addTab(" Quick Categories", quickAddPanel);
-        leftPanel.addTab(" Global Search", searchPanel);
-        
+
+        leftPanel.addTab(" Quick Categories", createQuickAddPanel());
+        leftPanel.addTab(" Global Search",    createSearchPanel());
         centerPanel.add(leftPanel);
-        
-        // Right: Cart panel
-        JPanel cartPanel = createCartPanel();
-        centerPanel.add(cartPanel);
-        
+        centerPanel.add(createCartPanel());
+
         add(centerPanel, BorderLayout.CENTER);
-        
-        // Bottom: Action buttons
+
+        // Bottom buttons
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
         buttonPanel.setOpaque(false);
-        
+
         JButton btnClear = new JButton("Clear Cart");
         ThemeManager.styleButton(btnClear, "danger");
         btnClear.setPreferredSize(new Dimension(150, 40));
         btnClear.addActionListener(e -> clearCart());
-        
+
         JButton btnComplete = new JButton(" Complete Sale");
         ThemeManager.styleButton(btnComplete, "success");
         btnComplete.setFont(new Font("Segoe UI", Font.BOLD, 16));
         btnComplete.setPreferredSize(new Dimension(200, 50));
         btnComplete.addActionListener(e -> completeSale());
-        
+
         buttonPanel.add(btnClear);
         buttonPanel.add(btnComplete);
-        
         add(buttonPanel, BorderLayout.SOUTH);
-        
-        // Initial load of all products
+
         searchProducts();
     }
-    
-    /**
-     * Create the quick add panel grouped by categories
-     */
+
+    // ── Quick-add panel (category tabs) ─────────────────────────────────────
+
     private JComponent createQuickAddPanel() {
         JTabbedPane categoryTabs = new JTabbedPane();
         categoryTabs.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         ThemeManager.applyTabbedPaneTheme(categoryTabs);
-        
+
         List<Product> allProducts = productDAO.getAllActive();
-        
-        // Group products by category
         java.util.Map<String, List<Product>> categoryMap = new java.util.HashMap<>();
         for (Product p : allProducts) {
-            String cat = p.getCategory();
-            if (cat == null || cat.trim().isEmpty()) {
-                cat = "Uncategorized";
-            }
+            String cat = (p.getCategory() == null || p.getCategory().trim().isEmpty())
+                         ? "Uncategorized" : p.getCategory();
             categoryMap.computeIfAbsent(cat, k -> new ArrayList<>()).add(p);
         }
-        
-        // Create a tab for each category
+
         for (String category : categoryMap.keySet()) {
             List<Product> catProducts = categoryMap.get(category);
-            
-            // Calculate grid rows based on items (min 4 rows, 3 cols)
             int rows = Math.max(4, (int) Math.ceil(catProducts.size() / 3.0));
             JPanel gridPanel = new JPanel(new GridLayout(rows, 3, 10, 10));
             gridPanel.setBackground(ThemeManager.bg());
             gridPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-            
+
             for (Product p : catProducts) {
-                JButton btn = new JButton("<html><center><b>" + p.getProductName() + "</b><br>₱" + String.format("%.2f", p.getSrp()) + "</center></html>");
+                JButton btn = new JButton("<html><center><b>" + p.getProductName() + "</b><br>₱" +
+                        String.format("%.2f", p.getSellPrice()) + "</center></html>");
                 btn.setFont(ThemeManager.fontBody());
                 ThemeManager.styleButton(btn, "success");
-                
                 btn.addActionListener(e -> quickAddToCart(p));
                 gridPanel.add(btn);
             }
-            
+
             // Fill empty slots
             int emptySlots = (rows * 3) - catProducts.size();
             for (int i = 0; i < emptySlots; i++) {
-                JButton emptyBtn = new JButton("-");
-                emptyBtn.setEnabled(false);
-                gridPanel.add(emptyBtn);
+                JButton empty = new JButton("-");
+                empty.setEnabled(false);
+                gridPanel.add(empty);
             }
-            
-            JScrollPane scrollPane = new JScrollPane(gridPanel);
-            scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-            scrollPane.setBorder(null);
-            
-            categoryTabs.addTab(category, scrollPane);
+
+            JScrollPane sp = new JScrollPane(gridPanel);
+            sp.getVerticalScrollBar().setUnitIncrement(16);
+            sp.setBorder(null);
+            categoryTabs.addTab(category, sp);
         }
-        
-        // If no products, just add an empty tab
+
         if (categoryMap.isEmpty()) {
             JPanel empty = new JPanel();
             empty.setBackground(ThemeManager.bg());
             empty.add(new JLabel("No products available"));
             categoryTabs.addTab("Empty", empty);
         }
-        
+
         return categoryTabs;
     }
-    
-    /**
-     * 1-Click add to cart (defaults to qty 1, NO popups)
-     */
-    private void quickAddToCart(Product selected) {
-        if (selected.getCurrentStock() <= 0) {
+
+    private void quickAddToCart(Product p) {
+        if (p.getCurrentStock() <= 0) {
             JOptionPane.showMessageDialog(this, "This product is out of stock!", "Out of Stock", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        
-        // Check if already in cart
-        for (SaleItem item : cartItems) {
-            if (item.getProductId() == selected.getProductId()) {
+        for (TransactionItem item : cartItems) {
+            if (item.getProductId() == p.getProductId()) {
                 int newQty = item.getQuantity() + 1;
-                if (newQty > selected.getCurrentStock()) {
-                    JOptionPane.showMessageDialog(this, "Cannot add more. Total would exceed available stock!", "Stock Error", JOptionPane.ERROR_MESSAGE);
+                if (newQty > p.getCurrentStock()) {
+                    JOptionPane.showMessageDialog(this, "Cannot add more — total would exceed available stock!", "Stock Error", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
                 item.setQuantity(newQty);
@@ -199,23 +170,12 @@ public class SalesPanel extends JPanel {
                 return;
             }
         }
-        
-        // Add new item to cart (Qty = 1)
-        SaleItem newItem = new SaleItem(
-            selected.getProductId(),
-            selected.getProductName(),
-            selected.getProductCode(),
-            1,
-            selected.getSrp(),
-            selected.getPurchasePrice()
-        );
-        cartItems.add(newItem);
+        cartItems.add(new TransactionItem(p.getProductId(), p.getProductName(), 1, p.getSellPrice(), p.getCostPerUnit()));
         refreshCartTable();
     }
-    
-    /**
-     * Create the product search panel
-     */
+
+    // ── Search panel ─────────────────────────────────────────────────────────
+
     private JPanel createSearchPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBackground(ThemeManager.surface());
@@ -223,67 +183,55 @@ public class SalesPanel extends JPanel {
             new LineBorder(ThemeManager.border()),
             BorderFactory.createEmptyBorder(15, 15, 15, 15)
         ));
-        
-        JLabel lblSearchTitle = new JLabel(" Search Products");
-        lblSearchTitle.setFont(ThemeManager.fontSection());
-        lblSearchTitle.setForeground(ThemeManager.text());
-        panel.add(lblSearchTitle, BorderLayout.NORTH);
-        
-        // Search field
+
+        JLabel lblTitle = new JLabel(" Search Products");
+        lblTitle.setFont(ThemeManager.fontSection());
+        lblTitle.setForeground(ThemeManager.text());
+        panel.add(lblTitle, BorderLayout.NORTH);
+
         JPanel searchFieldPanel = new JPanel(new BorderLayout(5, 0));
         searchFieldPanel.setOpaque(false);
-        
         txtSearch = new JTextField();
         txtSearch.setFont(new Font("Arial", Font.PLAIN, 14));
-        txtSearch.addActionListener(e -> searchProducts()); // Enter key support
-        
+        txtSearch.addActionListener(e -> searchProducts());
         JButton btnSearch = new JButton("Search");
         btnSearch.setFont(new Font("Arial", Font.BOLD, 12));
         btnSearch.addActionListener(e -> searchProducts());
-        
         searchFieldPanel.add(txtSearch, BorderLayout.CENTER);
         searchFieldPanel.add(btnSearch, BorderLayout.EAST);
-        
         panel.add(searchFieldPanel, BorderLayout.NORTH);
-        
-        // Search results list
+
         searchResultsModel = new DefaultListModel<>();
-        searchResultsList = new JList<>(searchResultsModel);
+        searchResultsList  = new JList<>(searchResultsModel);
         searchResultsList.setFont(ThemeManager.fontBody());
         searchResultsList.setBackground(ThemeManager.surface());
         searchResultsList.setForeground(ThemeManager.text());
         searchResultsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         searchResultsList.setCellRenderer(new ProductListRenderer());
-        
-        JScrollPane scrollPane = new JScrollPane(searchResultsList);
-        scrollPane.setBorder(BorderFactory.createTitledBorder("Search Results (Click to add to cart)"));
-        panel.add(scrollPane, BorderLayout.CENTER);
-        
-        // Add to cart button
-        JButton btnAddToCart = new JButton("Add to Cart");
-        ThemeManager.styleButton(btnAddToCart, "primary");
-        btnAddToCart.addActionListener(e -> addSelectedToCart());
-        
-        JPanel addButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        addButtonPanel.setOpaque(false);
-        addButtonPanel.add(btnAddToCart);
-        panel.add(addButtonPanel, BorderLayout.SOUTH);
-        
-        // Double-click to add
+
+        JScrollPane sp = new JScrollPane(searchResultsList);
+        sp.setBorder(BorderFactory.createTitledBorder("Search Results (Click to add to cart)"));
+        panel.add(sp, BorderLayout.CENTER);
+
+        JButton btnAdd = new JButton("Add to Cart");
+        ThemeManager.styleButton(btnAdd, "primary");
+        btnAdd.addActionListener(e -> addSelectedToCart());
+        JPanel addPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        addPanel.setOpaque(false);
+        addPanel.add(btnAdd);
+        panel.add(addPanel, BorderLayout.SOUTH);
+
         searchResultsList.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
-                if (evt.getClickCount() == 2) {
-                    addSelectedToCart();
-                }
+                if (evt.getClickCount() == 2) addSelectedToCart();
             }
         });
-        
+
         return panel;
     }
-    
-    /**
-     * Create the cart panel
-     */
+
+    // ── Cart panel ───────────────────────────────────────────────────────────
+
     private JPanel createCartPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBackground(ThemeManager.surface());
@@ -291,32 +239,36 @@ public class SalesPanel extends JPanel {
             new LineBorder(ThemeManager.border()),
             BorderFactory.createEmptyBorder(15, 15, 15, 15)
         ));
-        
-        JLabel lblCartTitle = new JLabel(" Shopping Cart");
-        lblCartTitle.setFont(ThemeManager.fontSection());
-        lblCartTitle.setForeground(ThemeManager.text());
-        panel.add(lblCartTitle, BorderLayout.NORTH);
-        
-        // Cart table
+
+        JLabel lblTitle = new JLabel(" Shopping Cart");
+        lblTitle.setFont(ThemeManager.fontSection());
+        lblTitle.setForeground(ThemeManager.text());
+        panel.add(lblTitle, BorderLayout.NORTH);
+
         String[] columns = {"Product", "Qty", "Price", "Total"};
         cartTableModel = new DefaultTableModel(columns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
+            @Override public boolean isCellEditable(int r, int c) { return false; }
         };
-        
         cartTable = new JTable(cartTableModel);
-        
-        JScrollPane scrollPane = new JScrollPane(cartTable);
-        ThemeManager.applyTableTheme(cartTable, scrollPane);
-        panel.add(scrollPane, BorderLayout.CENTER);
-        
-        // Totals panel
+        JScrollPane sp = new JScrollPane(cartTable);
+        ThemeManager.applyTableTheme(cartTable, sp);
+        panel.add(sp, BorderLayout.CENTER);
+
+        // Totals + remove button (south)
+        JPanel southPanel = new JPanel(new BorderLayout());
+        southPanel.setOpaque(false);
+
+        JPanel removePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        removePanel.setOpaque(false);
+        JButton btnRemove = new JButton("Remove Selected");
+        ThemeManager.styleButton(btnRemove, "warning");
+        btnRemove.addActionListener(e -> removeSelectedItem());
+        removePanel.add(btnRemove);
+
         JPanel totalsPanel = new JPanel(new GridLayout(4, 2, 5, 5));
         totalsPanel.setOpaque(false);
         totalsPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
-        
+
         JLabel lblSubtotalKey = new JLabel("Subtotal:", JLabel.LEFT);
         lblSubtotalKey.setForeground(ThemeManager.text());
         lblSubtotal = new JLabel("₱0.00", JLabel.RIGHT);
@@ -324,25 +276,23 @@ public class SalesPanel extends JPanel {
         lblSubtotal.setForeground(ThemeManager.text());
         totalsPanel.add(lblSubtotalKey);
         totalsPanel.add(lblSubtotal);
-        
-        // Discount input
+
         JPanel discountPanel = new JPanel(new BorderLayout(5, 0));
         discountPanel.setOpaque(false);
         txtDiscount = new JTextField("0");
         txtDiscount.setHorizontalAlignment(JTextField.RIGHT);
         txtDiscount.setFont(ThemeManager.fontBody());
-        txtDiscount.addActionListener(e -> applyDiscount()); // Enter key support
-        JButton btnApplyDiscount = new JButton("Apply");
-        ThemeManager.styleButton(btnApplyDiscount, "primary");
-        btnApplyDiscount.addActionListener(e -> applyDiscount());
+        txtDiscount.addActionListener(e -> applyDiscount());
+        JButton btnApply = new JButton("Apply");
+        ThemeManager.styleButton(btnApply, "primary");
+        btnApply.addActionListener(e -> applyDiscount());
         discountPanel.add(txtDiscount, BorderLayout.CENTER);
-        discountPanel.add(btnApplyDiscount, BorderLayout.EAST);
-        
+        discountPanel.add(btnApply, BorderLayout.EAST);
         JLabel lblDiscountInputKey = new JLabel("Discount (₱):", JLabel.LEFT);
         lblDiscountInputKey.setForeground(ThemeManager.text());
         totalsPanel.add(lblDiscountInputKey);
         totalsPanel.add(discountPanel);
-        
+
         lblDiscount = new JLabel("₱0.00", JLabel.RIGHT);
         lblDiscount.setFont(ThemeManager.fontBig());
         lblDiscount.setForeground(ThemeManager.danger());
@@ -350,7 +300,7 @@ public class SalesPanel extends JPanel {
         lblDiscountKey.setForeground(ThemeManager.text());
         totalsPanel.add(lblDiscountKey);
         totalsPanel.add(lblDiscount);
-        
+
         lblTotal = new JLabel("₱0.00", JLabel.RIGHT);
         lblTotal.setFont(new Font("Segoe UI", Font.BOLD, 26));
         lblTotal.setForeground(ThemeManager.success());
@@ -359,104 +309,60 @@ public class SalesPanel extends JPanel {
         lblTotalKey.setForeground(ThemeManager.text());
         totalsPanel.add(lblTotalKey);
         totalsPanel.add(lblTotal);
-        
-        panel.add(totalsPanel, BorderLayout.SOUTH);
-        
-        // Remove item button
-        JButton btnRemove = new JButton("Remove Selected");
-        ThemeManager.styleButton(btnRemove, "warning");
-        btnRemove.addActionListener(e -> removeSelectedItem());
-        
-        JPanel removePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        removePanel.setOpaque(false);
-        removePanel.add(btnRemove);
-        panel.add(removePanel, BorderLayout.SOUTH);
-        
-        // Re-add totals panel properly
-        JPanel southPanel = new JPanel(new BorderLayout());
-        southPanel.setOpaque(false);
-        southPanel.add(removePanel, BorderLayout.NORTH);
-        southPanel.add(totalsPanel, BorderLayout.SOUTH);
+
+        southPanel.add(removePanel,  BorderLayout.NORTH);
+        southPanel.add(totalsPanel,  BorderLayout.SOUTH);
         panel.add(southPanel, BorderLayout.SOUTH);
-        
+
         return panel;
     }
-    
-    /**
-     * Search products
-     */
+
+    // ── Actions ──────────────────────────────────────────────────────────────
+
     private void searchProducts() {
-        String searchTerm = txtSearch.getText().trim();
-        List<Product> results;
-        
-        if (searchTerm.isEmpty()) {
-            // Load all products if search is empty
-            results = productDAO.getAllActive();
-        } else {
-            results = productDAO.search(searchTerm);
-        }
-        
+        String term = txtSearch.getText().trim();
+        List<Product> results = term.isEmpty() ? productDAO.getAllActive() : productDAO.search(term);
         searchResultsModel.clear();
-        
-        for (Product p : results) {
-            searchResultsModel.addElement(p);
-        }
-        
-        if (results.isEmpty() && !searchTerm.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No products found for: " + searchTerm, "Search", JOptionPane.INFORMATION_MESSAGE);
+        for (Product p : results) searchResultsModel.addElement(p);
+        if (results.isEmpty() && !term.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No products found for: " + term, "Search", JOptionPane.INFORMATION_MESSAGE);
         }
     }
-    
-    /**
-     * Add selected product to cart
-     */
+
     private void addSelectedToCart() {
         Product selected = searchResultsList.getSelectedValue();
         if (selected == null) {
             JOptionPane.showMessageDialog(this, "Please select a product from the list.", "No Selection", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        
-        // Check stock
         if (selected.getCurrentStock() <= 0) {
             JOptionPane.showMessageDialog(this, "This product is out of stock!", "Out of Stock", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        
-        // Ask for quantity
-        String input = JOptionPane.showInputDialog(this, 
+
+        String input = JOptionPane.showInputDialog(this,
             "Product: " + selected.getProductName() + "\n" +
             "Available Stock: " + selected.getCurrentStock() + "\n" +
-            "Price: P" + String.format("%.2f", selected.getSrp()) + "\n\n" +
-            "Enter quantity:", "1");
-        
-        if (input == null || input.isEmpty()) {
-            return;
-        }
-        
+            "Price: ₱" + String.format("%.2f", selected.getSellPrice()) + "\n\nEnter quantity:", "1");
+
+        if (input == null || input.isEmpty()) return;
+
         try {
-            int quantity = Integer.parseInt(input);
-            
-            if (quantity <= 0) {
+            int qty = Integer.parseInt(input);
+            if (qty <= 0) {
                 JOptionPane.showMessageDialog(this, "Quantity must be positive.", "Invalid Input", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            
-            if (quantity > selected.getCurrentStock()) {
-                JOptionPane.showMessageDialog(this, 
-                    "Insufficient stock!\nAvailable: " + selected.getCurrentStock(), 
-                    "Stock Error", JOptionPane.ERROR_MESSAGE);
+            if (qty > selected.getCurrentStock()) {
+                JOptionPane.showMessageDialog(this, "Insufficient stock!\nAvailable: " + selected.getCurrentStock(), "Stock Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            
             // Check if already in cart
-            for (SaleItem item : cartItems) {
+            for (TransactionItem item : cartItems) {
                 if (item.getProductId() == selected.getProductId()) {
-                    int newQty = item.getQuantity() + quantity;
+                    int newQty = item.getQuantity() + qty;
                     if (newQty > selected.getCurrentStock()) {
-                        JOptionPane.showMessageDialog(this, 
-                            "Cannot add more. Total would exceed available stock!\nAvailable: " + selected.getCurrentStock(), 
-                            "Stock Error", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(this, "Cannot add more — total would exceed available stock!\nAvailable: " + selected.getCurrentStock(), "Stock Error", JOptionPane.ERROR_MESSAGE);
                         return;
                     }
                     item.setQuantity(newQty);
@@ -464,181 +370,117 @@ public class SalesPanel extends JPanel {
                     return;
                 }
             }
-            
-            // Add new item to cart
-            SaleItem newItem = new SaleItem(
-                selected.getProductId(),
-                selected.getProductName(),
-                selected.getProductCode(),
-                quantity,
-                selected.getSrp(),
-                selected.getPurchasePrice()
-            );
-            cartItems.add(newItem);
+            cartItems.add(new TransactionItem(selected.getProductId(), selected.getProductName(), qty, selected.getSellPrice(), selected.getCostPerUnit()));
             refreshCartTable();
-            
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "Please enter a valid number.", "Invalid Input", JOptionPane.WARNING_MESSAGE);
         }
     }
-    
-    /**
-     * Remove selected item from cart
-     */
+
     private void removeSelectedItem() {
         int row = cartTable.getSelectedRow();
         if (row < 0 || row >= cartItems.size()) {
             JOptionPane.showMessageDialog(this, "Please select an item to remove.", "No Selection", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        
         cartItems.remove(row);
         refreshCartTable();
     }
-    
-    /**
-     * Apply discount
-     */
+
     private void applyDiscount() {
         try {
             double discount = Double.parseDouble(txtDiscount.getText().trim());
-            if (discount < 0) {
-                discount = 0;
-            }
-            
+            if (discount < 0) discount = 0;
             double subtotal = calculateSubtotal();
             if (discount > subtotal) {
                 JOptionPane.showMessageDialog(this, "Discount cannot exceed subtotal.", "Invalid Discount", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            
-            lblDiscount.setText("P" + String.format("%.2f", discount));
+            lblDiscount.setText("₱" + String.format("%.2f", discount));
             updateTotals();
-            
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "Please enter a valid discount amount.", "Invalid Input", JOptionPane.WARNING_MESSAGE);
         }
     }
-    
-    /**
-     * Calculate subtotal from cart items
-     */
+
     private double calculateSubtotal() {
-        double subtotal = 0;
-        for (SaleItem item : cartItems) {
-            subtotal += item.getLineTotal();
-        }
-        return subtotal;
+        double total = 0;
+        for (TransactionItem item : cartItems) total += item.getItemTotal();
+        return total;
     }
-    
-    /**
-     * Refresh the cart table
-     */
+
     private void refreshCartTable() {
         cartTableModel.setRowCount(0);
-        
-        for (SaleItem item : cartItems) {
+        for (TransactionItem item : cartItems) {
             cartTableModel.addRow(new Object[]{
                 item.getProductName(),
                 item.getQuantity(),
-                String.format("%.2f", item.getUnitPrice()),
-                String.format("%.2f", item.getLineTotal())
+                String.format("%.2f", item.getSoldPrice()),
+                String.format("%.2f", item.getItemTotal())
             });
         }
-        
         updateTotals();
     }
-    
-    /**
-     * Update total labels
-     */
+
     private void updateTotals() {
         double subtotal = calculateSubtotal();
         double discount = 0;
-        
         try {
             discount = Double.parseDouble(txtDiscount.getText().trim());
             if (discount < 0) discount = 0;
             if (discount > subtotal) discount = subtotal;
-        } catch (NumberFormatException e) {
-            discount = 0;
-        }
-        
+        } catch (NumberFormatException ignored) {}
         double total = subtotal - discount;
-        
-        lblSubtotal.setText("P" + String.format("%.2f", subtotal));
-        lblDiscount.setText("P" + String.format("%.2f", discount));
-        lblTotal.setText("P" + String.format("%.2f", total));
+        lblSubtotal.setText("₱" + String.format("%.2f", subtotal));
+        lblDiscount.setText("₱" + String.format("%.2f", discount));
+        lblTotal.setText("₱"    + String.format("%.2f", total));
     }
-    
-    /**
-     * Complete the sale
-     */
+
     private void completeSale() {
         if (cartItems.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Cart is empty! Add products before completing sale.", "Empty Cart", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        
+
         double subtotal = calculateSubtotal();
         double discount = 0;
-        try {
-            discount = Double.parseDouble(txtDiscount.getText().trim());
-        } catch (NumberFormatException e) {
-            discount = 0;
-        }
+        try { discount = Double.parseDouble(txtDiscount.getText().trim()); } catch (NumberFormatException ignored) {}
         double total = subtotal - discount;
-        
-        // Confirm sale
-        int confirm = JOptionPane.showConfirmDialog(this, 
-            "Confirm Sale:\n\n" +
-            "Items: " + cartItems.size() + "\n" +
-            "Subtotal: P" + String.format("%.2f", subtotal) + "\n" +
-            "Discount: P" + String.format("%.2f", discount) + "\n" +
-            "TOTAL: P" + String.format("%.2f", total) + "\n\n" +
-            "Proceed with sale?",
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+            "Confirm Sale:\n\nItems: " + cartItems.size() + "\n" +
+            "Subtotal: ₱" + String.format("%.2f", subtotal) + "\n" +
+            "Discount: ₱" + String.format("%.2f", discount) + "\n" +
+            "TOTAL: ₱"    + String.format("%.2f", total)    + "\n\nProceed with sale?",
             "Confirm Sale", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-        
-        if (confirm != JOptionPane.YES_OPTION) {
-            return;
-        }
-        
-        // Create sale object
-        Sale sale = new Sale();
-        sale.setUserId(currentUser.getUserId());
-        sale.setTotalAmount(subtotal);
-        sale.setDiscountAmount(discount);
-        sale.setFinalAmount(total);
-        sale.setItems(new ArrayList<>(cartItems));
-        
-        // Save sale to database (transaction)
-        if (saleDAO.createSale(sale)) {
-            JOptionPane.showMessageDialog(this, 
+
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        Transaction transaction = new Transaction(discount, null);
+        transaction.setItems(new ArrayList<>(cartItems));
+        transaction.recalculateTotals();
+
+        if (transactionDAO.createTransaction(transaction)) {
+            JOptionPane.showMessageDialog(this,
                 "Sale completed successfully!\n\n" +
-                "Sale ID: " + sale.getSaleId() + "\n" +
-                "Total: P" + String.format("%.2f", total) + "\n" +
+                "Transaction ID: " + transaction.getTransactionId() + "\n" +
+                "Total: ₱" + String.format("%.2f", total) + "\n" +
                 "Thank you for your purchase!",
                 "Sale Complete", JOptionPane.INFORMATION_MESSAGE);
-            
-            // Clear cart
             clearCart();
-            
         } else {
-            JOptionPane.showMessageDialog(this, 
-                "Failed to complete sale.\nPlease check stock availability and try again.", 
+            JOptionPane.showMessageDialog(this,
+                "Failed to complete sale.\nPlease check stock availability and try again.",
                 "Sale Error", JOptionPane.ERROR_MESSAGE);
         }
     }
-    
-    /**
-     * Clear the cart
-     */
+
     private void clearCart() {
         cartItems.clear();
         txtDiscount.setText("0");
         refreshCartTable();
         searchResultsModel.clear();
-        txtSearch.setText("");
+        if (txtSearch != null) txtSearch.setText("");
     }
 }
 
@@ -650,18 +492,15 @@ class ProductListRenderer extends DefaultListCellRenderer {
     public Component getListCellRendererComponent(JList<?> list, Object value, int index,
             boolean isSelected, boolean cellHasFocus) {
         super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-        
         if (value instanceof Product) {
             Product p = (Product) value;
-            setText(p.getProductCode() + " — " + p.getProductName() +
-                    "  (₱" + String.format("%.2f", p.getSrp()) + ")  [Stock: " + p.getCurrentStock() + "]");
+            setText(p.getProductName() +
+                    "  (₱" + String.format("%.2f", p.getSellPrice()) + ")  [Stock: " + p.getCurrentStock() + "]");
         }
-        
         if (!isSelected) {
             setBackground(gui.ThemeManager.surface());
             setForeground(gui.ThemeManager.text());
         }
-        
         return this;
     }
 }
