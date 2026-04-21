@@ -2,15 +2,19 @@ package model;
 
 import java.sql.Timestamp;
 
+/**
+ * RestockLog Model Class
+ * Tracks all stock additions and their capital cost
+ * Removed userId - simplified system has no user table
+ * Renamed purchasePrice to costPerUnit for clarity
+ */
 public class RestockLog {
     private int logId;
     private int productId;
     private String productName;
     private int quantityAdded;
-    private double purchasePrice;
-    private double totalCost;
-    private int userId;
-    private String cashierName;
+    private double costPerUnit;      // Cost per unit at time of restock
+    private double totalCost;        // Total: costPerUnit × quantityAdded
     private Timestamp restockDate;
 
     public int getLogId() { return logId; }
@@ -25,17 +29,11 @@ public class RestockLog {
     public int getQuantityAdded() { return quantityAdded; }
     public void setQuantityAdded(int quantityAdded) { this.quantityAdded = quantityAdded; }
 
-    public double getPurchasePrice() { return purchasePrice; }
-    public void setPurchasePrice(double purchasePrice) { this.purchasePrice = purchasePrice; }
+    public double getCostPerUnit() { return costPerUnit; }
+    public void setCostPerUnit(double costPerUnit) { this.costPerUnit = costPerUnit; }
 
     public double getTotalCost() { return totalCost; }
     public void setTotalCost(double totalCost) { this.totalCost = totalCost; }
-
-    public int getUserId() { return userId; }
-    public void setUserId(int userId) { this.userId = userId; }
-
-    public String getCashierName() { return cashierName; }
-    public void setCashierName(String cashierName) { this.cashierName = cashierName; }
 
     public Timestamp getRestockDate() { return restockDate; }
     public void setRestockDate(Timestamp restockDate) { this.restockDate = restockDate; }

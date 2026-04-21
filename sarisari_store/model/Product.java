@@ -6,15 +6,16 @@ import java.sql.Timestamp;
 /**
  * Product Model Class
  * Represents a product in the inventory
+ * Note: product_code removed - using product_id as unique identifier
+ * Renamed fields for clarity: costPerUnit (was purchasePrice), sellPrice (was srp)
  */
 public class Product {
     private int productId;
-    private String productCode;
     private String productName;
     private String category;
     private String unit;
-    private double purchasePrice;
-    private double srp;
+    private double costPerUnit;   // How much you pay to buy 1 item from supplier
+    private double sellPrice;     // How much you charge customers for 1 item
     private int currentStock;
     private int minStockLevel;
     private Date expiryDate;
@@ -28,15 +29,14 @@ public class Product {
     }
     
     // Constructor without ID (for new products)
-    public Product(String productCode, String productName, String category, String unit,
-                   double purchasePrice, double srp, int currentStock, int minStockLevel,
+    public Product(String productName, String category, String unit,
+                   double costPerUnit, double sellPrice, int currentStock, int minStockLevel,
                    Date expiryDate, String imagePath) {
-        this.productCode = productCode;
         this.productName = productName;
         this.category = category;
         this.unit = unit;
-        this.purchasePrice = purchasePrice;
-        this.srp = srp;
+        this.costPerUnit = costPerUnit;
+        this.sellPrice = sellPrice;
         this.currentStock = currentStock;
         this.minStockLevel = minStockLevel;
         this.expiryDate = expiryDate;
@@ -45,17 +45,16 @@ public class Product {
     }
     
     // Full constructor
-    public Product(int productId, String productCode, String productName, String category, 
-                   String unit, double purchasePrice, double srp, int currentStock, 
+    public Product(int productId, String productName, String category, 
+                   String unit, double costPerUnit, double sellPrice, int currentStock, 
                    int minStockLevel, Date expiryDate, String imagePath, boolean isActive,
                    Timestamp createdAt, Timestamp updatedAt) {
         this.productId = productId;
-        this.productCode = productCode;
         this.productName = productName;
         this.category = category;
         this.unit = unit;
-        this.purchasePrice = purchasePrice;
-        this.srp = srp;
+        this.costPerUnit = costPerUnit;
+        this.sellPrice = sellPrice;
         this.currentStock = currentStock;
         this.minStockLevel = minStockLevel;
         this.expiryDate = expiryDate;
@@ -72,14 +71,6 @@ public class Product {
     
     public void setProductId(int productId) {
         this.productId = productId;
-    }
-    
-    public String getProductCode() {
-        return productCode;
-    }
-    
-    public void setProductCode(String productCode) {
-        this.productCode = productCode;
     }
     
     public String getProductName() {
@@ -106,20 +97,20 @@ public class Product {
         this.unit = unit;
     }
     
-    public double getPurchasePrice() {
-        return purchasePrice;
+    public double getCostPerUnit() {
+        return costPerUnit;
     }
     
-    public void setPurchasePrice(double purchasePrice) {
-        this.purchasePrice = purchasePrice;
+    public void setCostPerUnit(double costPerUnit) {
+        this.costPerUnit = costPerUnit;
     }
     
-    public double getSrp() {
-        return srp;
+    public double getSellPrice() {
+        return sellPrice;
     }
     
-    public void setSrp(double srp) {
-        this.srp = srp;
+    public void setSellPrice(double sellPrice) {
+        this.sellPrice = sellPrice;
     }
     
     public int getCurrentStock() {
@@ -180,10 +171,10 @@ public class Product {
     
     /**
      * Calculate profit per unit
-     * @return profit (SRP - purchase price)
+     * @return profit (sell price - cost per unit)
      */
     public double getProfitPerUnit() {
-        return srp - purchasePrice;
+        return sellPrice - costPerUnit;
     }
     
     /**
@@ -205,6 +196,6 @@ public class Product {
     
     @Override
     public String toString() {
-        return productName + " (" + productCode + ")";
+        return productName + " (Stock: " + currentStock + ")";
     }
 }

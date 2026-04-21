@@ -1,6 +1,7 @@
 -- =====================================================
 -- SARI-SARI STORE INVENTORY AND SALES MANAGEMENT SYSTEM
--- MySQL/MariaDB Database Schema
+-- MySQL/MariaDB Database Schema (Simplified Version)
+-- No User Table - Hardcoded Authentication
 -- =====================================================
 
 -- Create database
@@ -8,38 +9,17 @@ CREATE DATABASE IF NOT EXISTS sarisari_db CHARACTER SET utf8mb4 COLLATE utf8mb4_
 USE sarisari_db;
 
 -- =====================================================
--- 1. USERS TABLE
--- Stores system users with role-based access
--- =====================================================
-CREATE TABLE users (
-    user_id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    full_name VARCHAR(100) NOT NULL,
-    role ENUM('admin', 'cashier') DEFAULT 'cashier' NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Insert default admin user (password: admin123)
--- In production, use proper hashing. For first-year level, plain text or simple hash is acceptable
-INSERT INTO users (username, password_hash, full_name, role, is_active) VALUES
-('admin', 'admin123', 'System Administrator', 'admin', TRUE),
-('cashier1', 'cashier123', 'Juan Dela Cruz', 'cashier', TRUE);
-
--- =====================================================
--- 2. PRODUCTS TABLE
+-- 1. PRODUCTS TABLE
 -- Stores product information with stock tracking
+-- Note: category is included as a simple field (not a separate entity)
 -- =====================================================
 CREATE TABLE products (
     product_id INT AUTO_INCREMENT PRIMARY KEY,
-    product_code VARCHAR(50) NOT NULL UNIQUE,
     product_name VARCHAR(150) NOT NULL,
     category VARCHAR(50) DEFAULT 'General',
     unit VARCHAR(20) DEFAULT 'piece',
-    purchase_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-    srp DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    cost_per_unit DECIMAL(10,2) NOT NULL DEFAULT 0.00,      -- How much you pay to buy 1 item from supplier
+    sell_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,         -- How much you charge customers for 1 item
     current_stock INT DEFAULT 0,
     min_stock_level INT DEFAULT 5,
     expiry_date DATE NULL,
@@ -49,111 +29,83 @@ CREATE TABLE products (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     -- Constraints
-    CONSTRAINT chk_purchase_price CHECK (purchase_price >= 0),
-    CONSTRAINT chk_srp CHECK (srp >= purchase_price),
+    CONSTRAINT chk_cost CHECK (cost_per_unit >= 0),
+    CONSTRAINT chk_sell_price CHECK (sell_price >= cost_per_unit),
     CONSTRAINT chk_stock CHECK (current_stock >= 0),
     CONSTRAINT chk_min_stock CHECK (min_stock_level >= 0)
 );
 
 -- Insert sample products
-INSERT INTO products (product_code, product_name, category, unit, purchase_price, srp, current_stock, min_stock_level) VALUES
-('CC-001', 'Coca-Cola 1L', 'Beverages', 'piece', 18.00, 25.00, 50, 10),
-('CC-002', 'Coca-Cola 500ml', 'Beverages', 'piece', 12.00, 18.00, 30, 10),
-('SN-001', 'Fudgee Barr Chocolate', 'Snacks', 'piece', 8.00, 12.00, 100, 20),
-('SN-002', 'Lucky Me Pancit Canton', 'Snacks', 'piece', 15.00, 22.00, 75, 15),
-('HH-001', 'Safeguard Soap 90g', 'Household', 'piece', 18.00, 28.00, 40, 10),
-('HH-002', 'Colgate Toothpaste 50ml', 'Household', 'piece', 25.00, 38.00, 25, 5),
-('NG-001', 'Nescafe 3in1 Original', 'Beverages', 'piece', 5.00, 8.00, 200, 50),
-('NG-002', 'Gardenia Loaf Bread', 'Food', 'piece', 45.00, 60.00, 15, 5);
+INSERT INTO products (product_name, category, unit, cost_per_unit, sell_price, current_stock, min_stock_level) VALUES
+('Coca-Cola 1L', 'Beverages', 'piece', 18.00, 25.00, 50, 10),
+('Coca-Cola 500ml', 'Beverages', 'piece', 12.00, 18.00, 30, 10),
+('Fudgee Barr Chocolate', 'Snacks', 'piece', 8.00, 12.00, 100, 20),
+('Lucky Me Pancit Canton', 'Snacks', 'piece', 15.00, 22.00, 75, 15),
+('Safeguard Soap 90g', 'Household', 'piece', 18.00, 28.00, 40, 10),
+('Colgate Toothpaste 50ml', 'Household', 'piece', 25.00, 38.00, 25, 5),
+('Nescafe 3in1 Original', 'Beverages', 'piece', 5.00, 8.00, 200, 50),
+('Gardenia Loaf Bread', 'Food', 'piece', 45.00, 60.00, 15, 5);
 
 -- =====================================================
--- 3. SALES TABLE (Transaction Header)
--- Stores each sale transaction
+-- 2. TRANSACTIONS TABLE (formerly sales)
+-- Stores each sale transaction (header)
+-- No user reference - simplified system
 -- =====================================================
-CREATE TABLE sales (
-    sale_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    sale_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+CREATE TABLE transactions (
+    transaction_id INT AUTO_INCREMENT PRIMARY KEY,
+    transaction_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     discount_amount DECIMAL(10,2) DEFAULT 0.00,
     final_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-    notes VARCHAR(255) NULL,
-    
-    -- Foreign Key
-    CONSTRAINT fk_sales_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE RESTRICT
+    notes VARCHAR(255) NULL
 );
 
 -- Indexes for performance
-CREATE INDEX idx_sale_datetime ON sales(sale_datetime);
-CREATE INDEX idx_sale_user ON sales(user_id);
+CREATE INDEX idx_transaction_datetime ON transactions(transaction_datetime);
 
 -- =====================================================
--- 4. SALE_ITEMS TABLE (Transaction Lines)
--- Stores individual line items for each sale
--- Includes purchase_price snapshot for profit calculation
+-- 3. TRANSACTION_ITEMS TABLE (formerly sale_items)
+-- Stores individual line items for each transaction
+-- Includes cost snapshot for profit calculation
 -- =====================================================
-CREATE TABLE sale_items (
-    sale_item_id INT AUTO_INCREMENT PRIMARY KEY,
-    sale_id INT NOT NULL,
+CREATE TABLE transaction_items (
+    transaction_item_id INT AUTO_INCREMENT PRIMARY KEY,
+    transaction_id INT NOT NULL,
     product_id INT NOT NULL,
     quantity INT NOT NULL,
-    unit_price DECIMAL(10,2) NOT NULL,  -- SRP at time of sale
-    purchase_price DECIMAL(10,2) NOT NULL,  -- Cost at time of sale (for profit calc)
-    line_total DECIMAL(10,2) NOT NULL,
+    sold_price DECIMAL(10,2) NOT NULL,        -- Actual price customer paid for this item
+    cost_at_sale DECIMAL(10,2) NOT NULL,      -- Historical cost when this item was sold (for profit calc)
+    item_total DECIMAL(10,2) NOT NULL,        -- Subtotal: sold_price × quantity
     
     -- Foreign Keys
-    CONSTRAINT fk_saleitems_sale FOREIGN KEY (sale_id) REFERENCES sales(sale_id) ON DELETE CASCADE,
-    CONSTRAINT fk_saleitems_product FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_transactionitems_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id) ON DELETE CASCADE,
+    CONSTRAINT fk_transactionitems_product FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE RESTRICT,
     
     -- Constraints
     CONSTRAINT chk_quantity CHECK (quantity > 0),
-    CONSTRAINT chk_unit_price CHECK (unit_price >= 0),
-    CONSTRAINT chk_purchase_price_item CHECK (purchase_price >= 0),
-    CONSTRAINT chk_line_total CHECK (line_total >= 0)
+    CONSTRAINT chk_sold_price CHECK (sold_price >= 0),
+    CONSTRAINT chk_cost_at_sale CHECK (cost_at_sale >= 0),
+    CONSTRAINT chk_item_total CHECK (item_total >= 0)
 );
 
-CREATE INDEX idx_saleitems_sale ON sale_items(sale_id);
-CREATE INDEX idx_saleitems_product ON sale_items(product_id);
+CREATE INDEX idx_transactionitems_transaction ON transaction_items(transaction_id);
+CREATE INDEX idx_transactionitems_product ON transaction_items(product_id);
 
 -- =====================================================
--- 5. STOCK_HISTORY TABLE (Optional - for audit trail)
--- Tracks all stock changes for accountability
--- =====================================================
-CREATE TABLE stock_history (
-    history_id INT AUTO_INCREMENT PRIMARY KEY,
-    product_id INT NOT NULL,
-    change_type ENUM('sale', 'restock', 'adjustment', 'initial') NOT NULL,
-    quantity_change INT NOT NULL,  -- positive for restock, negative for sale
-    previous_stock INT NOT NULL,
-    new_stock INT NOT NULL,
-    reference_id INT NULL,  -- sale_id if type is 'sale'
-    user_id INT NULL,
-    notes VARCHAR(255) NULL,
-    change_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
-    CONSTRAINT fk_stockhist_product FOREIGN KEY (product_id) REFERENCES products(product_id),
-    CONSTRAINT fk_stockhist_user FOREIGN KEY (user_id) REFERENCES users(user_id)
-);
-
-CREATE INDEX idx_stockhist_product ON stock_history(product_id);
-CREATE INDEX idx_stockhist_date ON stock_history(change_date);
-
--- =====================================================
--- 5.1 RESTOCK_LOG TABLE
+-- 4. RESTOCK_LOG TABLE
 -- Tracks all stock additions and their capital cost
+-- Connected to products table (no user reference)
 -- =====================================================
 CREATE TABLE restock_log (
     restock_id INT AUTO_INCREMENT PRIMARY KEY,
     product_id INT NOT NULL,
     quantity_added INT NOT NULL,
-    purchase_price DECIMAL(10,2) NOT NULL,
-    total_cost DECIMAL(10,2) NOT NULL,
-    user_id INT NOT NULL,
+    cost_per_unit DECIMAL(10,2) NOT NULL,     -- Cost per unit at time of restock
+    total_cost DECIMAL(10,2) NOT NULL,        -- Total: cost_per_unit × quantity_added
     restock_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     notes VARCHAR(255) NULL,
     
-    CONSTRAINT fk_restocklog_product FOREIGN KEY (product_id) REFERENCES products(product_id),
-    CONSTRAINT fk_restocklog_user FOREIGN KEY (user_id) REFERENCES users(user_id)
+    CONSTRAINT fk_restocklog_product FOREIGN KEY (product_id) REFERENCES products(product_id)
 );
 
 CREATE INDEX idx_restocklog_product ON restock_log(product_id);
@@ -167,7 +119,6 @@ CREATE INDEX idx_restocklog_date ON restock_log(restock_date);
 CREATE VIEW low_stock_view AS
 SELECT 
     product_id,
-    product_code,
     product_name,
     category,
     current_stock,
@@ -177,20 +128,18 @@ FROM products
 WHERE current_stock <= min_stock_level AND is_active = TRUE
 ORDER BY stock_deficit ASC;
 
--- View: Sales with user details
-CREATE VIEW sales_summary_view AS
+-- View: Transaction summary (simplified, no user info)
+CREATE VIEW transaction_summary_view AS
 SELECT 
-    s.sale_id,
-    s.sale_datetime,
-    u.full_name AS cashier_name,
-    s.total_amount,
-    s.discount_amount,
-    s.final_amount,
-    COUNT(si.sale_item_id) AS item_count
-FROM sales s
-JOIN users u ON s.user_id = u.user_id
-LEFT JOIN sale_items si ON s.sale_id = si.sale_id
-GROUP BY s.sale_id, s.sale_datetime, u.full_name, s.total_amount, s.discount_amount, s.final_amount;
+    t.transaction_id,
+    t.transaction_datetime,
+    t.total_amount,
+    t.discount_amount,
+    t.final_amount,
+    COUNT(ti.transaction_item_id) AS item_count
+FROM transactions t
+LEFT JOIN transaction_items ti ON t.transaction_id = ti.transaction_id
+GROUP BY t.transaction_id, t.transaction_datetime, t.total_amount, t.discount_amount, t.final_amount;
 
 -- =====================================================
 -- End of Schema
