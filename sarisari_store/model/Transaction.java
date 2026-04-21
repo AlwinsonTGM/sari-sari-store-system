@@ -5,42 +5,39 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Sale Model Class
+ * Transaction Model Class
  * Represents a sales transaction (header)
+ * Renamed from Sale to Transaction for clarity
+ * Removed userId - simplified system has no user table
  */
-public class Sale {
-    private int saleId;
-    private int userId;
-    private String cashierName;  // For display purposes
-    private Timestamp saleDatetime;
+public class Transaction {
+    private int transactionId;
+    private Timestamp transactionDatetime;
     private double totalAmount;
     private double discountAmount;
     private double finalAmount;
     private String notes;
-    private List<SaleItem> items;  // Line items
+    private List<TransactionItem> items;  // Line items
     private int dbItemCount = 0; // Holds item count from DB when items are not fully loaded 
     
     // Default constructor
-    public Sale() {
+    public Transaction() {
         this.items = new ArrayList<>();
     }
     
-    // Constructor for new sales
-    public Sale(int userId, double discountAmount, String notes) {
-        this.userId = userId;
+    // Constructor for new transactions
+    public Transaction(double discountAmount, String notes) {
         this.discountAmount = discountAmount;
         this.notes = notes;
         this.items = new ArrayList<>();
-        this.saleDatetime = new Timestamp(System.currentTimeMillis());
+        this.transactionDatetime = new Timestamp(System.currentTimeMillis());
     }
     
     // Full constructor
-    public Sale(int saleId, int userId, String cashierName, Timestamp saleDatetime,
+    public Transaction(int transactionId, Timestamp transactionDatetime,
                 double totalAmount, double discountAmount, double finalAmount, String notes) {
-        this.saleId = saleId;
-        this.userId = userId;
-        this.cashierName = cashierName;
-        this.saleDatetime = saleDatetime;
+        this.transactionId = transactionId;
+        this.transactionDatetime = transactionDatetime;
         this.totalAmount = totalAmount;
         this.discountAmount = discountAmount;
         this.finalAmount = finalAmount;
@@ -49,36 +46,20 @@ public class Sale {
     }
     
     // Getters and Setters
-    public int getSaleId() {
-        return saleId;
+    public int getTransactionId() {
+        return transactionId;
     }
     
-    public void setSaleId(int saleId) {
-        this.saleId = saleId;
+    public void setTransactionId(int transactionId) {
+        this.transactionId = transactionId;
     }
     
-    public int getUserId() {
-        return userId;
+    public Timestamp getTransactionDatetime() {
+        return transactionDatetime;
     }
     
-    public void setUserId(int userId) {
-        this.userId = userId;
-    }
-    
-    public String getCashierName() {
-        return cashierName;
-    }
-    
-    public void setCashierName(String cashierName) {
-        this.cashierName = cashierName;
-    }
-    
-    public Timestamp getSaleDatetime() {
-        return saleDatetime;
-    }
-    
-    public void setSaleDatetime(Timestamp saleDatetime) {
-        this.saleDatetime = saleDatetime;
+    public void setTransactionDatetime(Timestamp transactionDatetime) {
+        this.transactionDatetime = transactionDatetime;
     }
     
     public double getTotalAmount() {
@@ -113,28 +94,28 @@ public class Sale {
         this.notes = notes;
     }
     
-    public List<SaleItem> getItems() {
+    public List<TransactionItem> getItems() {
         return items;
     }
     
-    public void setItems(List<SaleItem> items) {
+    public void setItems(List<TransactionItem> items) {
         this.items = items;
     }
     
     /**
-     * Add an item to the sale
-     * @param item the SaleItem to add
+     * Add an item to the transaction
+     * @param item the TransactionItem to add
      */
-    public void addItem(SaleItem item) {
+    public void addItem(TransactionItem item) {
         this.items.add(item);
         recalculateTotals();
     }
     
     /**
-     * Remove an item from the sale
-     * @param item the SaleItem to remove
+     * Remove an item from the transaction
+     * @param item the TransactionItem to remove
      */
-    public void removeItem(SaleItem item) {
+    public void removeItem(TransactionItem item) {
         this.items.remove(item);
         recalculateTotals();
     }
@@ -152,8 +133,8 @@ public class Sale {
      */
     public void recalculateTotals() {
         this.totalAmount = 0;
-        for (SaleItem item : items) {
-            this.totalAmount += item.getLineTotal();
+        for (TransactionItem item : items) {
+            this.totalAmount += item.getItemTotal();
         }
         this.finalAmount = this.totalAmount - this.discountAmount;
         if (this.finalAmount < 0) {
@@ -162,19 +143,19 @@ public class Sale {
     }
     
     /**
-     * Calculate total profit for this sale
+     * Calculate total profit for this transaction
      * @return total profit
      */
     public double getTotalProfit() {
         double profit = 0;
-        for (SaleItem item : items) {
+        for (TransactionItem item : items) {
             profit += item.getProfit();
         }
         return profit - discountAmount;  // Subtract discount from profit
     }
     
     /**
-     * Get number of items in the sale
+     * Get number of items in the transaction
      * @return item count
      */
     public int getItemCount() {
@@ -188,6 +169,6 @@ public class Sale {
     
     @Override
     public String toString() {
-        return "Sale #" + saleId + " - " + saleDatetime + " - P" + String.format("%.2f", finalAmount);
+        return "Transaction #" + transactionId + " - " + transactionDatetime + " - P" + String.format("%.2f", finalAmount);
     }
 }

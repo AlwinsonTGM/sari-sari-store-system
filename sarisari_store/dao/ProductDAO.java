@@ -40,26 +40,12 @@ public class ProductDAO {
     }
     
     /**
-     * Get product by code
-     * @param productCode the product code
-     * @return Product object or null
+     * Get product by code - REMOVED: product_code column no longer exists
+     * @param productCode the product code (not used)
+     * @return null (method deprecated)
      */
     public Product getByCode(String productCode) {
-        String sql = "SELECT * FROM products WHERE product_code = ? AND is_active = TRUE";
-        
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
-            stmt.setString(1, productCode);
-            ResultSet rs = stmt.executeQuery();
-            
-            if (rs.next()) {
-                return mapResultSetToProduct(rs);
-            }
-        } catch (SQLException e) {
-            System.err.println("Error getting product by code: " + e.getMessage());
-        }
-        
+        System.err.println("getByCode() is deprecated - product_code column removed");
         return null;
     }
     
@@ -86,21 +72,20 @@ public class ProductDAO {
     }
     
     /**
-     * Search products by name or code
+     * Search products by name only (product_code removed)
      * @param searchTerm the search term
      * @return List of matching products
      */
     public List<Product> search(String searchTerm) {
         List<Product> products = new ArrayList<>();
         String sql = "SELECT * FROM products WHERE is_active = TRUE AND " +
-                     "(product_name LIKE ? OR product_code LIKE ?) ORDER BY product_name";
+                     "product_name LIKE ? ORDER BY product_name";
         
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             String pattern = "%" + searchTerm + "%";
             stmt.setString(1, pattern);
-            stmt.setString(2, pattern);
             
             ResultSet rs = stmt.executeQuery();
             
@@ -159,34 +144,33 @@ public class ProductDAO {
     }
     
     /**
-     * Add a new product
+     * Add a new product (product_code removed)
      * @param product the Product to add
      * @return true if successful
      */
     public boolean add(Product product) {
-        String sql = "INSERT INTO products (product_code, product_name, category, unit, " +
-                     "purchase_price, srp, current_stock, min_stock_level, expiry_date, image_path) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO products (product_name, category, unit, " +
+                     "cost_per_unit, sell_price, current_stock, min_stock_level, expiry_date, image_path) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
-            stmt.setString(1, product.getProductCode());
-            stmt.setString(2, product.getProductName());
-            stmt.setString(3, product.getCategory());
-            stmt.setString(4, product.getUnit());
-            stmt.setDouble(5, product.getPurchasePrice());
-            stmt.setDouble(6, product.getSrp());
-            stmt.setInt(7, product.getCurrentStock());
-            stmt.setInt(8, product.getMinStockLevel());
+            stmt.setString(1, product.getProductName());
+            stmt.setString(2, product.getCategory());
+            stmt.setString(3, product.getUnit());
+            stmt.setDouble(4, product.getCostPerUnit());
+            stmt.setDouble(5, product.getSellPrice());
+            stmt.setInt(6, product.getCurrentStock());
+            stmt.setInt(7, product.getMinStockLevel());
             
             if (product.getExpiryDate() != null) {
-                stmt.setDate(9, product.getExpiryDate());
+                stmt.setDate(8, product.getExpiryDate());
             } else {
-                stmt.setNull(9, Types.DATE);
+                stmt.setNull(8, Types.DATE);
             }
             
-            stmt.setString(10, product.getImagePath());
+            stmt.setString(9, product.getImagePath());
             
             int affectedRows = stmt.executeUpdate();
             
@@ -205,34 +189,33 @@ public class ProductDAO {
     }
     
     /**
-     * Update an existing product
+     * Update an existing product (product_code removed)
      * @param product the Product to update
      * @return true if successful
      */
     public boolean update(Product product) {
-        String sql = "UPDATE products SET product_code = ?, product_name = ?, category = ?, " +
-                     "unit = ?, purchase_price = ?, srp = ?, min_stock_level = ?, " +
+        String sql = "UPDATE products SET product_name = ?, category = ?, " +
+                     "unit = ?, cost_per_unit = ?, sell_price = ?, min_stock_level = ?, " +
                      "expiry_date = ?, image_path = ? WHERE product_id = ?";
         
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            stmt.setString(1, product.getProductCode());
-            stmt.setString(2, product.getProductName());
-            stmt.setString(3, product.getCategory());
-            stmt.setString(4, product.getUnit());
-            stmt.setDouble(5, product.getPurchasePrice());
-            stmt.setDouble(6, product.getSrp());
-            stmt.setInt(7, product.getMinStockLevel());
+            stmt.setString(1, product.getProductName());
+            stmt.setString(2, product.getCategory());
+            stmt.setString(3, product.getUnit());
+            stmt.setDouble(4, product.getCostPerUnit());
+            stmt.setDouble(5, product.getSellPrice());
+            stmt.setInt(6, product.getMinStockLevel());
             
             if (product.getExpiryDate() != null) {
-                stmt.setDate(8, product.getExpiryDate());
+                stmt.setDate(7, product.getExpiryDate());
             } else {
-                stmt.setNull(8, Types.DATE);
+                stmt.setNull(7, Types.DATE);
             }
             
-            stmt.setString(9, product.getImagePath());
-            stmt.setInt(10, product.getProductId());
+            stmt.setString(8, product.getImagePath());
+            stmt.setInt(9, product.getProductId());
             
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -244,10 +227,9 @@ public class ProductDAO {
     
     /**
      * Restock a product: adds quantity, logs the capital cost.
-     * purchasePrice and userId are used to record restock_log.
-     * If restock_log table doesn't exist yet, the stock update still succeeds.
+     * Removed userId - simplified system has no user table
      */
-    public boolean restock(int productId, int quantity, double purchasePrice, int userId) {
+    public boolean restock(int productId, int quantity, double costPerUnit) {
         String stockSql = "UPDATE products SET current_stock = current_stock + ? WHERE product_id = ?";
         
         try (Connection conn = getConnection();
@@ -260,13 +242,12 @@ public class ProductDAO {
             if (stockUpdated) {
                 // Log the capital cost — silent failure if table doesn't exist yet
                 try {
-                    String logSql = "INSERT INTO restock_log (product_id, quantity_added, purchase_price, total_cost, user_id) VALUES (?, ?, ?, ?, ?)";
+                    String logSql = "INSERT INTO restock_log (product_id, quantity_added, cost_per_unit, total_cost) VALUES (?, ?, ?, ?)";
                     PreparedStatement logStmt = conn.prepareStatement(logSql);
                     logStmt.setInt(1, productId);
                     logStmt.setInt(2, quantity);
-                    logStmt.setDouble(3, purchasePrice);
-                    logStmt.setDouble(4, quantity * purchasePrice);
-                    logStmt.setInt(5, userId);
+                    logStmt.setDouble(3, costPerUnit);
+                    logStmt.setDouble(4, quantity * costPerUnit);
                     logStmt.executeUpdate();
                     logStmt.close();
                 } catch (SQLException logEx) {
@@ -313,15 +294,14 @@ public class ProductDAO {
     }
     
     /**
-     * Get all restock logs
+     * Get all restock logs (no user reference - simplified system)
      * @return List of RestockLog objects
      */
     public List<model.RestockLog> getRestockLogs() {
         List<model.RestockLog> logs = new ArrayList<>();
-        String sql = "SELECT r.*, p.product_name, u.full_name as cashier_name " +
+        String sql = "SELECT r.*, p.product_name " +
                      "FROM restock_log r " +
                      "JOIN products p ON r.product_id = p.product_id " +
-                     "JOIN users u ON r.user_id = u.user_id " +
                      "ORDER BY r.restock_date DESC";
         
         try (Connection conn = getConnection();
@@ -334,10 +314,8 @@ public class ProductDAO {
                 log.setProductId(rs.getInt("product_id"));
                 log.setProductName(rs.getString("product_name"));
                 log.setQuantityAdded(rs.getInt("quantity_added"));
-                log.setPurchasePrice(rs.getDouble("purchase_price"));
+                log.setCostPerUnit(rs.getDouble("cost_per_unit"));
                 log.setTotalCost(rs.getDouble("total_cost"));
-                log.setUserId(rs.getInt("user_id"));
-                log.setCashierName(rs.getString("cashier_name"));
                 log.setRestockDate(rs.getTimestamp("restock_date"));
                 logs.add(log);
             }
@@ -395,26 +373,12 @@ public class ProductDAO {
     }
     
     /**
-     * Check if product code already exists
-     * @param productCode the code to check
-     * @return true if exists
+     * Check if product code already exists - REMOVED: product_code column no longer exists
+     * @param productCode the code to check (not used)
+     * @return false (method deprecated)
      */
     public boolean codeExists(String productCode) {
-        String sql = "SELECT COUNT(*) FROM products WHERE product_code = ?";
-        
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
-            stmt.setString(1, productCode);
-            ResultSet rs = stmt.executeQuery();
-            
-            if (rs.next()) {
-                return rs.getInt(1) > 0;
-            }
-        } catch (SQLException e) {
-            System.err.println("Error checking product code: " + e.getMessage());
-        }
-        
+        System.err.println("codeExists() is deprecated - product_code column removed");
         return false;
     }
     
@@ -424,12 +388,11 @@ public class ProductDAO {
     private Product mapResultSetToProduct(ResultSet rs) throws SQLException {
         Product product = new Product();
         product.setProductId(rs.getInt("product_id"));
-        product.setProductCode(rs.getString("product_code"));
         product.setProductName(rs.getString("product_name"));
         product.setCategory(rs.getString("category"));
         product.setUnit(rs.getString("unit"));
-        product.setPurchasePrice(rs.getDouble("purchase_price"));
-        product.setSrp(rs.getDouble("srp"));
+        product.setCostPerUnit(rs.getDouble("cost_per_unit"));
+        product.setSellPrice(rs.getDouble("sell_price"));
         product.setCurrentStock(rs.getInt("current_stock"));
         product.setMinStockLevel(rs.getInt("min_stock_level"));
         product.setExpiryDate(rs.getDate("expiry_date"));
