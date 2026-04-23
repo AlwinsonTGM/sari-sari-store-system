@@ -7,8 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * TransactionDAO - Data Access Object for Transaction operations
- * Replaces SaleDAO after system simplification.
+ * TransactionDAO - Data Access Object for Transaction operations.
  * Uses the 'transactions' and 'transaction_items' tables.
  * No user references - simplified, hardcoded authentication only.
  */

@@ -1,0 +1,4 @@
+bin/
+*.class
+.vscode/
+*.mwb.bak
