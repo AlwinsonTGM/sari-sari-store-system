@@ -123,7 +123,7 @@ public class ProductPanel extends JPanel {
         tableViewPanel.setOpaque(false);
         
         // Product table
-        String[] columns = {"Code", "Name", "Category", "Unit", "Purchase", "SRP", "Stock", "Min"};
+        String[] columns = {"ID", "Name", "Category", "Unit", "Cost", "Sell Price", "Stock", "Min"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -295,9 +295,9 @@ public class ProductPanel extends JPanel {
                     if (d2 == null) return -1;
                     return d2.compareTo(d1);
                 } else if ("Price (Low-High)".equals(sortCriteria)) {
-                    return Double.compare(p1.getSrp(), p2.getSrp());
+                    return Double.compare(p1.getSellPrice(), p2.getSellPrice());
                 } else if ("Price (High-Low)".equals(sortCriteria)) {
-                    return Double.compare(p2.getSrp(), p1.getSrp());
+                    return Double.compare(p2.getSellPrice(), p1.getSellPrice());
                 }
                 return 0;
             });
@@ -314,12 +314,12 @@ public class ProductPanel extends JPanel {
         
         for (Product p : currentProducts) {
             tableModel.addRow(new Object[]{
-                p.getProductCode(),
+                p.getProductId(),
                 p.getProductName(),
                 p.getCategory(),
                 p.getUnit(),
-                String.format("%.2f", p.getPurchasePrice()),
-                String.format("%.2f", p.getSrp()),
+                String.format("%.2f", p.getCostPerUnit()),
+                String.format("%.2f", p.getSellPrice()),
                 p.getCurrentStock(),
                 p.getMinStockLevel()
             });
@@ -389,7 +389,7 @@ public class ProductPanel extends JPanel {
             categoryLbl.setFont(ThemeManager.fontSmall());
             categoryLbl.setForeground(ThemeManager.text2());
             
-            JLabel priceLbl = new JLabel("SRP: ₱" + String.format("%.2f", p.getSrp()), JLabel.CENTER);
+            JLabel priceLbl = new JLabel("SRP: ₱" + String.format("%.2f", p.getSellPrice()), JLabel.CENTER);
             priceLbl.setFont(ThemeManager.fontBody());
             priceLbl.setForeground(ThemeManager.primary());
             
@@ -603,10 +603,10 @@ public class ProductPanel extends JPanel {
         valCurrent.setFont(ThemeManager.fontBold());
         valCurrent.setForeground(ThemeManager.text());
         
-        JLabel lblPrice = new JLabel("Purchase Price:");
+        JLabel lblPrice = new JLabel("Cost Per Unit:");
         lblPrice.setFont(ThemeManager.fontBody());
         lblPrice.setForeground(ThemeManager.text());
-        JLabel valPrice = new JLabel("\u20b1" + String.format("%.2f", product.getPurchasePrice()) + " / unit");
+        JLabel valPrice = new JLabel("\u20b1" + String.format("%.2f", product.getCostPerUnit()) + " / unit");
         valPrice.setFont(ThemeManager.fontBold());
         valPrice.setForeground(ThemeManager.text());
         
@@ -619,7 +619,7 @@ public class ProductPanel extends JPanel {
         JLabel lblCost = new JLabel("Total Capital Cost:");
         lblCost.setFont(ThemeManager.fontBody());
         lblCost.setForeground(ThemeManager.text());
-        JLabel valCost = new JLabel("\u20b1" + String.format("%.2f", product.getPurchasePrice()));
+        JLabel valCost = new JLabel("\u20b1" + String.format("%.2f", product.getCostPerUnit()));
         valCost.setFont(ThemeManager.fontBold());
         valCost.setForeground(ThemeManager.danger());
         
@@ -628,7 +628,7 @@ public class ProductPanel extends JPanel {
             private void updateCost() {
                 try {
                     int qty = Integer.parseInt(txtQty.getText().trim());
-                    double cost = qty * product.getPurchasePrice();
+                    double cost = qty * product.getCostPerUnit();
                     valCost.setText("\u20b1" + String.format("%.2f", cost) + "  \u2192 will be deducted from profit");
                 } catch (NumberFormatException ex) {
                     valCost.setText("—");
@@ -667,13 +667,13 @@ public class ProductPanel extends JPanel {
                     JOptionPane.showMessageDialog(dialog, "Quantity must be a positive number.", "Invalid", JOptionPane.WARNING_MESSAGE);
                     return;
                 }
-                double cost = qty * product.getPurchasePrice();
+                double cost = qty * product.getCostPerUnit();
                 int confirm = JOptionPane.showConfirmDialog(dialog,
                     String.format("Confirm restocking %d units of '%s'?\nCapital cost: \u20b1%.2f will be logged.",
                         qty, product.getProductName(), cost),
                     "Confirm Restock", JOptionPane.YES_NO_OPTION);
                 if (confirm == JOptionPane.YES_OPTION) {
-                    if (productDAO.restock(product.getProductId(), qty, product.getPurchasePrice())) {
+                    if (productDAO.restock(product.getProductId(), qty, product.getCostPerUnit())) {
                         JOptionPane.showMessageDialog(dialog, "Restocked successfully!\nCapital logged: \u20b1" + String.format("%.2f", cost));
                         dialog.dispose();
                         loadAllProducts();
@@ -741,8 +741,8 @@ public class ProductPanel extends JPanel {
             txtProductName.setText(product.getProductName());
             txtCategory.setText(product.getCategory());
             txtUnit.setText(product.getUnit());
-            txtPurchasePrice.setText(String.valueOf(product.getPurchasePrice()));
-            txtSRP.setText(String.valueOf(product.getSrp()));
+            txtPurchasePrice.setText(String.valueOf(product.getCostPerUnit()));
+            txtSRP.setText(String.valueOf(product.getSellPrice()));
             txtStock.setText(String.valueOf(product.getCurrentStock()));
             txtMinStock.setText(String.valueOf(product.getMinStockLevel()));
             if (product.getExpiryDate() != null) {
@@ -859,8 +859,8 @@ public class ProductPanel extends JPanel {
         product.setProductName(txtProductName.getText().trim());
         product.setCategory(txtCategory.getText().trim());
         product.setUnit(txtUnit.getText().trim());
-        product.setPurchasePrice(Double.parseDouble(txtPurchasePrice.getText().trim()));
-        product.setSrp(Double.parseDouble(txtSRP.getText().trim()));
+        product.setCostPerUnit(Double.parseDouble(txtPurchasePrice.getText().trim()));
+        product.setSellPrice(Double.parseDouble(txtSRP.getText().trim()));
         product.setCurrentStock(Integer.parseInt(txtStock.getText().trim()));
         product.setMinStockLevel(Integer.parseInt(txtMinStock.getText().trim()));
         
