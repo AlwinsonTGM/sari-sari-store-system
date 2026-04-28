@@ -14,7 +14,7 @@ Before opening the code, ensure you have the following installed:
 
 ### 2. Database Configuration
 1. Open your MySQL admin tool (e.g., phpMyAdmin or MySQL Workbench).
-2. Create a new database named `sarisari_store`. [cite: 10]
+2. Create a new database named `sarisari_store`.
 3. Import the `database_schema.sql` file located in the `sarisari_store/` folder to create the necessary tables.
 4. **Warning:** Open `src/dao/DBConnection.java` and update the `URL`, `USER`, and `PASSWORD` strings to match your local MySQL credentials. 
 
@@ -27,9 +27,9 @@ Before opening the code, ensure you have the following installed:
 
 ## ⚠️ Important Warnings & Tips
 
-* **Database Connection:** The system will fail to launch if it cannot connect to your MySQL server. [cite_start]Double-check your username and password in `DBConnection.java`. 
-* [cite_start]**Images:** If product images do not appear, ensure the `images/products/` directory exists and contains the images referenced in your database. [cite: 3, 4]
-* [cite_start]**Vibe Coding Note:** Since parts of this were "vibe coded," please use **Git Branches** when testing new UI changes to avoid breaking the main working version of the `MainFrame` or `Dashboard`.
+* **Database Connection:** The system will fail to launch if it cannot connect to your MySQL server. Double-check your username and password in `DBConnection.java`. 
+* **Images:** If product images do not appear, ensure the `images/products/` directory exists and contains the images referenced in your database.
+* **Vibe Coding Note:** Since parts of this were "vibe coded," please use **Git Branches** when testing new UI changes to avoid breaking the main working version of the `MainFrame` or `Dashboard`.
 * **Clean & Build:** If you encounter weird errors after pulling updates, try running `Clean Java Language Server Workspace` from the VS Code Command Palette (`Ctrl+Shift+P`).
 
 ---
