@@ -83,11 +83,11 @@ public class TransactionDAO {
 
         } catch (SQLException e) {
             System.err.println("Error creating transaction: " + e.getMessage());
-            if (conn != null) { try { conn.rollback(); } catch (SQLException ex) { /* ignore */ } }
+            if (conn != null) { try { conn.rollback(); } catch (SQLException ex) {  } }
             return false;
         } finally {
             if (conn != null) {
-                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException e) { /* ignore */ }
+                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException e) {  }
             }
         }
     }
@@ -185,10 +185,6 @@ public class TransactionDAO {
         return queryDouble("SELECT COALESCE(SUM(final_amount),0) FROM transactions WHERE DATE(transaction_datetime)=CURDATE()");
     }
 
-    public int getTodayTransactionCount() {
-        return queryInt("SELECT COUNT(*) FROM transactions WHERE DATE(transaction_datetime)=CURDATE()");
-    }
-
     public double getTodayProfit() {
         return queryDouble(
             "SELECT COALESCE(SUM((ti.sold_price - ti.cost_at_sale) * ti.quantity),0) " +
@@ -283,16 +279,5 @@ public class TransactionDAO {
             System.err.println("Query error: " + e.getMessage());
         }
         return 0.0;
-    }
-
-    private int queryInt(String sql) {
-        try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            if (rs.next()) return rs.getInt(1);
-        } catch (SQLException e) {
-            System.err.println("Query error: " + e.getMessage());
-        }
-        return 0;
     }
 }

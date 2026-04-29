@@ -40,16 +40,6 @@ public class ProductDAO {
     }
     
     /**
-     * Get product by code - REMOVED: product_code column no longer exists
-     * @param productCode the product code (not used)
-     * @return null (method deprecated)
-     */
-    public Product getByCode(String productCode) {
-        System.err.println("getByCode() is deprecated - product_code column removed");
-        return null;
-    }
-    
-    /**
      * Get all active products
      * @return List of active products
      */
@@ -262,14 +252,6 @@ public class ProductDAO {
         
         return false;
     }
-
-    /**
-     * Backward-compat overload — ignores userId (user management removed).
-     * @deprecated Use restock(productId, quantity, costPerUnit) instead.
-     */
-    public boolean restock(int productId, int quantity, double costPerUnit, int userId) {
-        return restock(productId, quantity, costPerUnit);
-    }
     
     /**
      * Get total capital spent on restocking today
@@ -377,16 +359,6 @@ public class ProductDAO {
             System.err.println("Error deactivating product: " + e.getMessage());
         }
         
-        return false;
-    }
-    
-    /**
-     * Check if product code already exists - REMOVED: product_code column no longer exists
-     * @param productCode the code to check (not used)
-     * @return false (method deprecated)
-     */
-    public boolean codeExists(String productCode) {
-        System.err.println("codeExists() is deprecated - product_code column removed");
         return false;
     }
     
