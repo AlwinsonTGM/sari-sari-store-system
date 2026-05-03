@@ -56,7 +56,7 @@ public class DashboardPanel extends JPanel {
         lblTitle.setForeground(ThemeManager.primary());
         titleRow.add(lblTitle, BorderLayout.WEST);
 
-        JButton btnRefresh = new JButton("⟳ Refresh");
+        JButton btnRefresh = new JButton("Refresh");
         ThemeManager.styleButton(btnRefresh, "primary");
         btnRefresh.addActionListener(e -> refreshData());
         JPanel titleRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
@@ -249,7 +249,7 @@ public class DashboardPanel extends JPanel {
         lblNetToday.setText((netToday < 0 ? "\u2212\u20b1" : "\u20b1") + String.format("%,.2f", Math.abs(netToday)));
         lblNetToday.setForeground(netToday >= 0 ? ThemeManager.success() : ThemeManager.danger());
 
-        // \u2500\u2500 All-Time \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+        //  All-Time
         double allRevenue = transactionDAO.getAllTimeTotalSales();
         double allProfit  = transactionDAO.getAllTimeProfit();
         double allCapital = productDAO.getAllTimeRestockCost();

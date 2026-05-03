@@ -69,7 +69,7 @@ public class SalesPanel extends JPanel {
         leftPanel.setFont(new Font("Segoe UI", Font.BOLD, 14));
         ThemeManager.applyTabbedPaneTheme(leftPanel);
 
-        leftPanel.addTab(" Quick Categories", createQuickAddPanel());
+        leftPanel.addTab(" All Products", createQuickAddPanel());
         leftPanel.addTab(" Global Search",    createSearchPanel());
         centerPanel.add(leftPanel);
         centerPanel.add(createCartPanel());
@@ -101,56 +101,42 @@ public class SalesPanel extends JPanel {
     // ── Quick-add panel (category tabs) ─────────────────────────────────────
 
     private JComponent createQuickAddPanel() {
-        JTabbedPane categoryTabs = new JTabbedPane();
-        categoryTabs.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        ThemeManager.applyTabbedPaneTheme(categoryTabs);
-
         List<Product> allProducts = productDAO.getAllActive();
-        java.util.Map<String, List<Product>> categoryMap = new java.util.HashMap<>();
-        for (Product p : allProducts) {
-            String cat = (p.getCategory() == null || p.getCategory().trim().isEmpty())
-                         ? "Uncategorized" : p.getCategory();
-            categoryMap.computeIfAbsent(cat, k -> new ArrayList<>()).add(p);
-        }
-
-        for (String category : categoryMap.keySet()) {
-            List<Product> catProducts = categoryMap.get(category);
-            int rows = Math.max(4, (int) Math.ceil(catProducts.size() / 3.0));
-            JPanel gridPanel = new JPanel(new GridLayout(rows, 3, 10, 10));
-            gridPanel.setBackground(ThemeManager.bg());
-            gridPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-
-            for (Product p : catProducts) {
-                JButton btn = new JButton("<html><center><b>" + p.getProductName() + "</b><br>₱" +
-                        String.format("%.2f", p.getSellPrice()) + "</center></html>");
-                btn.setFont(ThemeManager.fontBody());
-                ThemeManager.styleButton(btn, "success");
-                btn.addActionListener(e -> quickAddToCart(p));
-                gridPanel.add(btn);
-            }
-
-            // Fill empty slots
-            int emptySlots = (rows * 3) - catProducts.size();
-            for (int i = 0; i < emptySlots; i++) {
-                JButton empty = new JButton("-");
-                empty.setEnabled(false);
-                gridPanel.add(empty);
-            }
-
-            JScrollPane sp = new JScrollPane(gridPanel);
-            sp.getVerticalScrollBar().setUnitIncrement(16);
-            sp.setBorder(null);
-            categoryTabs.addTab(category, sp);
-        }
-
-        if (categoryMap.isEmpty()) {
+        
+        if (allProducts.isEmpty()) {
             JPanel empty = new JPanel();
             empty.setBackground(ThemeManager.bg());
             empty.add(new JLabel("No products available"));
-            categoryTabs.addTab("Empty", empty);
+            return empty;
         }
 
-        return categoryTabs;
+        int rows = Math.max(4, (int) Math.ceil(allProducts.size() / 3.0));
+        JPanel gridPanel = new JPanel(new GridLayout(rows, 3, 10, 10));
+        gridPanel.setBackground(ThemeManager.bg());
+        gridPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+        for (Product p : allProducts) {
+            JButton btn = new JButton("<html><center><b>" + p.getProductName() + "</b><br>₱" +
+                    String.format("%.2f", p.getSellPrice()) + "</center></html>");
+            btn.setFont(ThemeManager.fontBody());
+            ThemeManager.styleButton(btn, "success");
+            btn.addActionListener(e -> quickAddToCart(p));
+            gridPanel.add(btn);
+        }
+
+        // Fill empty slots
+        int emptySlots = (rows * 3) - allProducts.size();
+        for (int i = 0; i < emptySlots; i++) {
+            JButton empty = new JButton("-");
+            empty.setEnabled(false);
+            gridPanel.add(empty);
+        }
+
+        JScrollPane sp = new JScrollPane(gridPanel);
+        sp.getVerticalScrollBar().setUnitIncrement(16);
+        sp.setBorder(null);
+
+        return sp;
     }
 
     private void quickAddToCart(Product p) {
@@ -456,7 +442,7 @@ public class SalesPanel extends JPanel {
 
         if (confirm != JOptionPane.YES_OPTION) return;
 
-        Transaction transaction = new Transaction(discount, null);
+        Transaction transaction = new Transaction(discount);
         transaction.setItems(new ArrayList<>(cartItems));
         transaction.recalculateTotals();
 

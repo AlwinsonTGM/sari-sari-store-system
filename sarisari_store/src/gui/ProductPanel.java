@@ -45,7 +45,6 @@ public class ProductPanel extends JPanel {
     // Form fields for add/edit
     private JTextField txtProductCode;
     private JTextField txtProductName;
-    private JTextField txtCategory;
     private JTextField txtUnit;
     private JTextField txtPurchasePrice;
     private JTextField txtSRP;
@@ -100,7 +99,6 @@ public class ProductPanel extends JPanel {
         // Sort combobox
         cmbSort = new JComboBox<>(new String[]{
             "Default", "Name (A-Z)", "Name (Z-A)", 
-            "Category (A-Z)", "Category (Z-A)", 
             "Expiry (Soonest)", "Expiry (Latest)", 
             "Price (Low-High)", "Price (High-Low)"
         });
@@ -123,7 +121,7 @@ public class ProductPanel extends JPanel {
         tableViewPanel.setOpaque(false);
         
         // Product table
-        String[] columns = {"ID", "Name", "Category", "Unit", "Cost", "Sell Price", "Stock", "Min"};
+        String[] columns = {"ID", "Name", "Unit", "Cost", "Sell Price", "Stock", "Min"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -137,14 +135,13 @@ public class ProductPanel extends JPanel {
         
         // Set column widths
         TableColumnModel columnModel = productTable.getColumnModel();
-        columnModel.getColumn(0).setPreferredWidth(80);
-        columnModel.getColumn(1).setPreferredWidth(150);
-        columnModel.getColumn(2).setPreferredWidth(100);
-        columnModel.getColumn(3).setPreferredWidth(60);
-        columnModel.getColumn(4).setPreferredWidth(70);
-        columnModel.getColumn(5).setPreferredWidth(70);
-        columnModel.getColumn(6).setPreferredWidth(50);
-        columnModel.getColumn(7).setPreferredWidth(50);
+        columnModel.getColumn(0).setPreferredWidth(60);  // ID
+        columnModel.getColumn(1).setPreferredWidth(200); // Name
+        columnModel.getColumn(2).setPreferredWidth(80);  // Unit
+        columnModel.getColumn(3).setPreferredWidth(80);  // Cost
+        columnModel.getColumn(4).setPreferredWidth(80);  // Sell Price
+        columnModel.getColumn(5).setPreferredWidth(60);  // Stock
+        columnModel.getColumn(6).setPreferredWidth(60);  // Min
         
         // Selection listener to show image
         productTable.getSelectionModel().addListSelectionListener(e -> {
@@ -272,14 +269,6 @@ public class ProductPanel extends JPanel {
                     return p1.getProductName().compareToIgnoreCase(p2.getProductName());
                 } else if ("Name (Z-A)".equals(sortCriteria)) {
                     return p2.getProductName().compareToIgnoreCase(p1.getProductName());
-                } else if ("Category (A-Z)".equals(sortCriteria)) {
-                    String c1 = p1.getCategory() == null ? "" : p1.getCategory();
-                    String c2 = p2.getCategory() == null ? "" : p2.getCategory();
-                    return c1.compareToIgnoreCase(c2);
-                } else if ("Category (Z-A)".equals(sortCriteria)) {
-                    String c1 = p1.getCategory() == null ? "" : p1.getCategory();
-                    String c2 = p2.getCategory() == null ? "" : p2.getCategory();
-                    return c2.compareToIgnoreCase(c1);
                 } else if ("Expiry (Soonest)".equals(sortCriteria)) {
                     java.util.Date d1 = p1.getExpiryDate();
                     java.util.Date d2 = p2.getExpiryDate();
@@ -316,7 +305,6 @@ public class ProductPanel extends JPanel {
             tableModel.addRow(new Object[]{
                 p.getProductId(),
                 p.getProductName(),
-                p.getCategory(),
                 p.getUnit(),
                 String.format("%.2f", p.getCostPerUnit()),
                 String.format("%.2f", p.getSellPrice()),
@@ -378,16 +366,14 @@ public class ProductPanel extends JPanel {
             card.add(imgLabel, BorderLayout.NORTH);
             
             // Details
-            JPanel details = new JPanel(new GridLayout(6, 1));
+            JPanel details = new JPanel(new GridLayout(5, 1));
             details.setBackground(ThemeManager.surface());
             
             JLabel nameLbl = new JLabel(p.getProductName(), JLabel.CENTER);
             nameLbl.setFont(ThemeManager.fontBold());
             nameLbl.setForeground(ThemeManager.text());
             
-            JLabel categoryLbl = new JLabel((p.getCategory() == null || p.getCategory().isEmpty()) ? "Uncategorized" : p.getCategory(), JLabel.CENTER);
-            categoryLbl.setFont(ThemeManager.fontSmall());
-            categoryLbl.setForeground(ThemeManager.text2());
+
             
             JLabel priceLbl = new JLabel("SRP: ₱" + String.format("%.2f", p.getSellPrice()), JLabel.CENTER);
             priceLbl.setFont(ThemeManager.fontBody());
@@ -417,7 +403,6 @@ public class ProductPanel extends JPanel {
             }
             
             details.add(nameLbl);
-            details.add(categoryLbl);
             details.add(priceLbl);
             details.add(stockLbl);
             details.add(expiryLbl);
@@ -727,7 +712,6 @@ public class ProductPanel extends JPanel {
         // Initialize fields
         txtProductCode = new JTextField(20);
         txtProductName = new JTextField(20);
-        txtCategory = new JTextField(20);
         txtUnit = new JTextField(20);
         txtPurchasePrice = new JTextField(20);
         txtSRP = new JTextField(20);
@@ -739,7 +723,6 @@ public class ProductPanel extends JPanel {
         // Populate if editing
         if (product != null) {
             txtProductName.setText(product.getProductName());
-            txtCategory.setText(product.getCategory());
             txtUnit.setText(product.getUnit());
             txtPurchasePrice.setText(String.valueOf(product.getCostPerUnit()));
             txtSRP.setText(String.valueOf(product.getSellPrice()));
@@ -760,8 +743,6 @@ public class ProductPanel extends JPanel {
         panel.add(new JLabel("Product Name:*"));
         panel.add(txtProductName);
         
-        panel.add(new JLabel("Category:"));
-        panel.add(txtCategory);
         
         panel.add(new JLabel("Unit:"));
         panel.add(txtUnit);
@@ -857,7 +838,6 @@ public class ProductPanel extends JPanel {
         Product product = new Product();
         // product_code removed from schema; no-op setProductCode kept for compat
         product.setProductName(txtProductName.getText().trim());
-        product.setCategory(txtCategory.getText().trim());
         product.setUnit(txtUnit.getText().trim());
         product.setCostPerUnit(Double.parseDouble(txtPurchasePrice.getText().trim()));
         product.setSellPrice(Double.parseDouble(txtSRP.getText().trim()));

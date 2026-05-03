@@ -139,28 +139,27 @@ public class ProductDAO {
      * @return true if successful
      */
     public boolean add(Product product) {
-        String sql = "INSERT INTO products (product_name, category, unit, " +
+        String sql = "INSERT INTO products (product_name, unit, " +
                      "cost_per_unit, sell_price, current_stock, min_stock_level, expiry_date, image_path) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
             stmt.setString(1, product.getProductName());
-            stmt.setString(2, product.getCategory());
-            stmt.setString(3, product.getUnit());
-            stmt.setDouble(4, product.getCostPerUnit());
-            stmt.setDouble(5, product.getSellPrice());
-            stmt.setInt(6, product.getCurrentStock());
-            stmt.setInt(7, product.getMinStockLevel());
+            stmt.setString(2, product.getUnit());
+            stmt.setDouble(3, product.getCostPerUnit());
+            stmt.setDouble(4, product.getSellPrice());
+            stmt.setInt(5, product.getCurrentStock());
+            stmt.setInt(6, product.getMinStockLevel());
             
             if (product.getExpiryDate() != null) {
-                stmt.setDate(8, product.getExpiryDate());
+                stmt.setDate(7, product.getExpiryDate());
             } else {
-                stmt.setNull(8, Types.DATE);
+                stmt.setNull(7, Types.DATE);
             }
             
-            stmt.setString(9, product.getImagePath());
+            stmt.setString(8, product.getImagePath());
             
             int affectedRows = stmt.executeUpdate();
             
@@ -184,7 +183,7 @@ public class ProductDAO {
      * @return true if successful
      */
     public boolean update(Product product) {
-        String sql = "UPDATE products SET product_name = ?, category = ?, " +
+        String sql = "UPDATE products SET product_name = ?, " +
                      "unit = ?, cost_per_unit = ?, sell_price = ?, min_stock_level = ?, " +
                      "expiry_date = ?, image_path = ? WHERE product_id = ?";
         
@@ -192,20 +191,19 @@ public class ProductDAO {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setString(1, product.getProductName());
-            stmt.setString(2, product.getCategory());
-            stmt.setString(3, product.getUnit());
-            stmt.setDouble(4, product.getCostPerUnit());
-            stmt.setDouble(5, product.getSellPrice());
-            stmt.setInt(6, product.getMinStockLevel());
+            stmt.setString(2, product.getUnit());
+            stmt.setDouble(3, product.getCostPerUnit());
+            stmt.setDouble(4, product.getSellPrice());
+            stmt.setInt(5, product.getMinStockLevel());
             
             if (product.getExpiryDate() != null) {
-                stmt.setDate(7, product.getExpiryDate());
+                stmt.setDate(6, product.getExpiryDate());
             } else {
-                stmt.setNull(7, Types.DATE);
+                stmt.setNull(6, Types.DATE);
             }
             
-            stmt.setString(8, product.getImagePath());
-            stmt.setInt(9, product.getProductId());
+            stmt.setString(7, product.getImagePath());
+            stmt.setInt(8, product.getProductId());
             
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -369,7 +367,6 @@ public class ProductDAO {
         Product product = new Product();
         product.setProductId(rs.getInt("product_id"));
         product.setProductName(rs.getString("product_name"));
-        product.setCategory(rs.getString("category"));
         product.setUnit(rs.getString("unit"));
         product.setCostPerUnit(rs.getDouble("cost_per_unit"));
         product.setSellPrice(rs.getDouble("sell_price"));

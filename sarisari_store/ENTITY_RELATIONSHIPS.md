@@ -14,7 +14,6 @@ This document describes the entity relationships in the simplified Sari-Sari Sto
 │─────────────────│
 │ PK product_id   │◄──────┐
 │    product_name │       │
-│    category     │       │
 │    unit         │       │
 │    cost_per_unit│       │
 │    sell_price   │       │
@@ -46,7 +45,7 @@ This document describes the entity relationships in the simplified Sari-Sari Sto
 │    total_amount         │
 │    discount_amount      │
 │    final_amount         │
-│    notes                │
+│    items                │
 └─────────────────┘
 
 ┌─────────────────┐
@@ -58,7 +57,6 @@ This document describes the entity relationships in the simplified Sari-Sari Sto
 │    cost_per_unit        │
 │    total_cost           │
 │    restock_date         │
-│    notes                │
 └─────────────────┘
 ```
 
@@ -73,7 +71,6 @@ Stores all product information including inventory levels and pricing.
 |--------|------|-------------|
 | `product_id` | INT (PK) | Auto-increment unique identifier |
 | `product_name` | VARCHAR(150) | Name of the product |
-| `category` | VARCHAR(50) | Product category (e.g., Beverages, Snacks) - **embedded field, not separate entity** |
 | `unit` | VARCHAR(20) | Unit of measurement (piece, pack, bottle) |
 | `cost_per_unit` | DECIMAL(10,2) | **How much you pay to buy 1 item from supplier** |
 | `sell_price` | DECIMAL(10,2) | **How much you charge customers for 1 item** |
@@ -97,7 +94,7 @@ Stores each sales transaction header information.
 | `total_amount` | DECIMAL(10,2) | Sum of all items before discount |
 | `discount_amount` | DECIMAL(10,2) | Discount applied |
 | `final_amount` | DECIMAL(10,2) | Total after discount |
-| `notes` | VARCHAR(255) | Optional transaction notes |
+| `items` | INT | Number of unique items in transaction |
 
 **Note:** No user reference - simplified system has hardcoded authentication only.
 
@@ -139,7 +136,6 @@ Tracks all stock additions and their capital costs.
 | `cost_per_unit` | DECIMAL(10,2) | **Cost per unit at time of restock** |
 | `total_cost` | DECIMAL(10,2) | **Total: cost_per_unit × quantity_added** |
 | `restock_date` | TIMESTAMP | When restock occurred |
-| `notes` | VARCHAR(255) | Optional notes |
 
 **Note:** No user reference - simplified system doesn't track who did the restock.
 
@@ -162,9 +158,8 @@ Tracks all stock additions and their capital costs.
 - **Replacement:** Hardcoded authentication in code
 - **Impact:** No cashier tracking per transaction or restock
 
-### Categories Table (NEVER EXISTED)
-- **Reason:** Category is embedded as a simple field in products table
-- **Format:** VARCHAR(50) column in products
+### Categories (REMOVED)
+- **Reason:** Simplification; categories are no longer tracked in the system
 
 ### Product Code (REMOVED)
 - **Reason:** Redundant with product_id

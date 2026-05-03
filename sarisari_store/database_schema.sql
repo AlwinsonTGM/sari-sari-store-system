@@ -8,15 +8,24 @@
 CREATE DATABASE IF NOT EXISTS sarisari_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE sarisari_db;
 
+-- Drop existing views
+DROP VIEW IF EXISTS low_stock_view;
+DROP VIEW IF EXISTS transaction_summary_view;
+
+-- Drop existing tables (in reverse order of dependencies)
+DROP TABLE IF EXISTS restock_log;
+DROP TABLE IF EXISTS transaction_items;
+DROP TABLE IF EXISTS transactions;
+DROP TABLE IF EXISTS products;
+
 -- =====================================================
 -- 1. PRODUCTS TABLE
 -- Stores product information with stock tracking
--- Note: category is included as a simple field (not a separate entity)
+-- Note: category field has been removed as per requirements
 -- =====================================================
 CREATE TABLE products (
     product_id INT AUTO_INCREMENT PRIMARY KEY,
     product_name VARCHAR(150) NOT NULL,
-    category VARCHAR(50) DEFAULT 'General',
     unit VARCHAR(20) DEFAULT 'piece',
     cost_per_unit DECIMAL(10,2) NOT NULL DEFAULT 0.00,      -- How much you pay to buy 1 item from supplier
     sell_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,         -- How much you charge customers for 1 item
@@ -36,15 +45,15 @@ CREATE TABLE products (
 );
 
 -- Insert sample products
-INSERT INTO products (product_name, category, unit, cost_per_unit, sell_price, current_stock, min_stock_level) VALUES
-('Coca-Cola 1L', 'Beverages', 'piece', 18.00, 25.00, 50, 10),
-('Coca-Cola 500ml', 'Beverages', 'piece', 12.00, 18.00, 30, 10),
-('Fudgee Barr Chocolate', 'Snacks', 'piece', 8.00, 12.00, 100, 20),
-('Lucky Me Pancit Canton', 'Snacks', 'piece', 15.00, 22.00, 75, 15),
-('Safeguard Soap 90g', 'Household', 'piece', 18.00, 28.00, 40, 10),
-('Colgate Toothpaste 50ml', 'Household', 'piece', 25.00, 38.00, 25, 5),
-('Nescafe 3in1 Original', 'Beverages', 'piece', 5.00, 8.00, 200, 50),
-('Gardenia Loaf Bread', 'Food', 'piece', 45.00, 60.00, 15, 5);
+INSERT INTO products (product_name, unit, cost_per_unit, sell_price, current_stock, min_stock_level) VALUES
+('Coca-Cola 1L', 'piece', 18.00, 25.00, 50, 10),
+('Coca-Cola 500ml', 'piece', 12.00, 18.00, 30, 10),
+('Fudgee Barr Chocolate', 'piece', 8.00, 12.00, 100, 20),
+('Lucky Me Pancit Canton', 'piece', 15.00, 22.00, 75, 15),
+('Safeguard Soap 90g', 'piece', 18.00, 28.00, 40, 10),
+('Colgate Toothpaste 50ml', 'piece', 25.00, 38.00, 25, 5),
+('Nescafe 3in1 Original', 'piece', 5.00, 8.00, 200, 50),
+('Gardenia Loaf Bread', 'piece', 45.00, 60.00, 15, 5);
 
 -- =====================================================
 -- 2. TRANSACTIONS TABLE (formerly sales)
@@ -57,7 +66,7 @@ CREATE TABLE transactions (
     total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     discount_amount DECIMAL(10,2) DEFAULT 0.00,
     final_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-    notes VARCHAR(255) NULL
+    items INT DEFAULT 0
 );
 
 -- Indexes for performance
@@ -103,7 +112,6 @@ CREATE TABLE restock_log (
     cost_per_unit DECIMAL(10,2) NOT NULL,     -- Cost per unit at time of restock
     total_cost DECIMAL(10,2) NOT NULL,        -- Total: cost_per_unit × quantity_added
     restock_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    notes VARCHAR(255) NULL,
     
     CONSTRAINT fk_restocklog_product FOREIGN KEY (product_id) REFERENCES products(product_id)
 );
@@ -120,7 +128,6 @@ CREATE VIEW low_stock_view AS
 SELECT 
     product_id,
     product_name,
-    category,
     current_stock,
     min_stock_level,
     (current_stock - min_stock_level) AS stock_deficit

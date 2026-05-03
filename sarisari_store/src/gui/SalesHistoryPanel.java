@@ -123,7 +123,7 @@ public class SalesHistoryPanel extends JPanel {
         btnDetails.addActionListener(e -> viewSaleDetails());
         btnPanel.add(btnDetails);
 
-        JButton btnRefresh = new JButton("↺ Refresh");
+        JButton btnRefresh = new JButton("Refresh");
         ThemeManager.styleButton(btnRefresh, "neutral");
         btnRefresh.addActionListener(e -> refreshData());
         btnPanel.add(btnRefresh);

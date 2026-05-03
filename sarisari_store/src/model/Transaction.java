@@ -16,7 +16,6 @@ public class Transaction {
     private double totalAmount;
     private double discountAmount;
     private double finalAmount;
-    private String notes;
     private List<TransactionItem> items;  // Line items
     private int dbItemCount = 0; // Holds item count from DB when items are not fully loaded 
     
@@ -26,22 +25,20 @@ public class Transaction {
     }
     
     // Constructor for new transactions
-    public Transaction(double discountAmount, String notes) {
+    public Transaction(double discountAmount) {
         this.discountAmount = discountAmount;
-        this.notes = notes;
         this.items = new ArrayList<>();
         this.transactionDatetime = new Timestamp(System.currentTimeMillis());
     }
     
     // Full constructor
     public Transaction(int transactionId, Timestamp transactionDatetime,
-                double totalAmount, double discountAmount, double finalAmount, String notes) {
+                double totalAmount, double discountAmount, double finalAmount) {
         this.transactionId = transactionId;
         this.transactionDatetime = transactionDatetime;
         this.totalAmount = totalAmount;
         this.discountAmount = discountAmount;
         this.finalAmount = finalAmount;
-        this.notes = notes;
         this.items = new ArrayList<>();
     }
     
@@ -84,14 +81,6 @@ public class Transaction {
     
     public void setFinalAmount(double finalAmount) {
         this.finalAmount = finalAmount;
-    }
-    
-    public String getNotes() {
-        return notes;
-    }
-    
-    public void setNotes(String notes) {
-        this.notes = notes;
     }
     
     public List<TransactionItem> getItems() {

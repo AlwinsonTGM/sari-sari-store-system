@@ -35,13 +35,13 @@ public class TransactionDAO {
             conn.setAutoCommit(false);
 
             // 1. Insert transaction header
-            String txSql = "INSERT INTO transactions (total_amount, discount_amount, final_amount, notes) " +
+            String txSql = "INSERT INTO transactions (total_amount, discount_amount, final_amount, items) " +
                            "VALUES (?, ?, ?, ?)";
             PreparedStatement txStmt = conn.prepareStatement(txSql, Statement.RETURN_GENERATED_KEYS);
             txStmt.setDouble(1, transaction.getTotalAmount());
             txStmt.setDouble(2, transaction.getDiscountAmount());
             txStmt.setDouble(3, transaction.getFinalAmount());
-            txStmt.setString(4, transaction.getNotes());
+            txStmt.setInt(4, transaction.getItems().size());
 
             if (txStmt.executeUpdate() == 0) { conn.rollback(); return false; }
 
@@ -100,9 +100,7 @@ public class TransactionDAO {
      * Get a transaction by ID including all its line items.
      */
     public Transaction getById(int transactionId) {
-        String sql = "SELECT t.*, " +
-                     "(SELECT COUNT(*) FROM transaction_items ti WHERE ti.transaction_id = t.transaction_id) AS item_count " +
-                     "FROM transactions t WHERE t.transaction_id = ?";
+        String sql = "SELECT * FROM transactions WHERE transaction_id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, transactionId);
@@ -123,9 +121,7 @@ public class TransactionDAO {
      */
     public List<Transaction> getAll() {
         List<Transaction> list = new ArrayList<>();
-        String sql = "SELECT t.*, " +
-                     "(SELECT COUNT(*) FROM transaction_items ti WHERE ti.transaction_id = t.transaction_id) AS item_count " +
-                     "FROM transactions t ORDER BY t.transaction_datetime DESC";
+        String sql = "SELECT * FROM transactions ORDER BY transaction_datetime DESC";
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
@@ -141,10 +137,8 @@ public class TransactionDAO {
      */
     public List<Transaction> getTodayTransactions() {
         List<Transaction> list = new ArrayList<>();
-        String sql = "SELECT t.*, " +
-                     "(SELECT COUNT(*) FROM transaction_items ti WHERE ti.transaction_id = t.transaction_id) AS item_count " +
-                     "FROM transactions t WHERE DATE(t.transaction_datetime) = CURDATE() " +
-                     "ORDER BY t.transaction_datetime DESC";
+        String sql = "SELECT * FROM transactions WHERE DATE(transaction_datetime) = CURDATE() " +
+                     "ORDER BY transaction_datetime DESC";
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
@@ -160,11 +154,9 @@ public class TransactionDAO {
      */
     public List<Transaction> getByDateRange(Date fromDate, Date toDate) {
         List<Transaction> list = new ArrayList<>();
-        String sql = "SELECT t.*, " +
-                     "(SELECT COUNT(*) FROM transaction_items ti WHERE ti.transaction_id = t.transaction_id) AS item_count " +
-                     "FROM transactions t " +
-                     "WHERE DATE(t.transaction_datetime) BETWEEN ? AND ? " +
-                     "ORDER BY t.transaction_datetime DESC";
+        String sql = "SELECT * FROM transactions " +
+                     "WHERE DATE(transaction_datetime) BETWEEN ? AND ? " +
+                     "ORDER BY transaction_datetime DESC";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setDate(1, fromDate);
@@ -265,8 +257,7 @@ public class TransactionDAO {
         t.setTotalAmount(rs.getDouble("total_amount"));
         t.setDiscountAmount(rs.getDouble("discount_amount"));
         t.setFinalAmount(rs.getDouble("final_amount"));
-        t.setNotes(rs.getString("notes"));
-        try { t.setItemCount(rs.getInt("item_count")); } catch (SQLException ignore) {}
+        try { t.setItemCount(rs.getInt("items")); } catch (SQLException ignore) {}
         return t;
     }
 

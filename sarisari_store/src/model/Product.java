@@ -12,7 +12,6 @@ import java.sql.Timestamp;
 public class Product {
     private int productId;
     private String productName;
-    private String category;
     private String unit;
     private double costPerUnit;   // How much you pay to buy 1 item from supplier
     private double sellPrice;     // How much you charge customers for 1 item
@@ -29,11 +28,10 @@ public class Product {
     }
     
     // Constructor without ID (for new products)
-    public Product(String productName, String category, String unit,
+    public Product(String productName, String unit,
                    double costPerUnit, double sellPrice, int currentStock, int minStockLevel,
                    Date expiryDate, String imagePath) {
         this.productName = productName;
-        this.category = category;
         this.unit = unit;
         this.costPerUnit = costPerUnit;
         this.sellPrice = sellPrice;
@@ -45,13 +43,12 @@ public class Product {
     }
     
     // Full constructor
-    public Product(int productId, String productName, String category, 
+    public Product(int productId, String productName,
                    String unit, double costPerUnit, double sellPrice, int currentStock, 
                    int minStockLevel, Date expiryDate, String imagePath, boolean isActive,
                    Timestamp createdAt, Timestamp updatedAt) {
         this.productId = productId;
         this.productName = productName;
-        this.category = category;
         this.unit = unit;
         this.costPerUnit = costPerUnit;
         this.sellPrice = sellPrice;
@@ -64,7 +61,7 @@ public class Product {
         this.updatedAt = updatedAt;
     }
     
-    // Getters and Setters
+    // Getters and Setters - USED ONLY FOR DEVELOPMENT
     public int getProductId() {
         return productId;
     }
@@ -79,14 +76,6 @@ public class Product {
     
     public void setProductName(String productName) {
         this.productName = productName;
-    }
-    
-    public String getCategory() {
-        return category;
-    }
-    
-    public void setCategory(String category) {
-        this.category = category;
     }
     
     public String getUnit() {
@@ -198,21 +187,4 @@ public class Product {
     public String toString() {
         return productName + " (Stock: " + currentStock + ")";
     }
-
-    // ── Backward-compatibility aliases (old field names used by GUI) ──────────
-
-    /** @deprecated Use getCostPerUnit() */
-    public double getPurchasePrice() { return costPerUnit; }
-    /** @deprecated Use setCostPerUnit() */
-    public void setPurchasePrice(double v) { this.costPerUnit = v; }
-
-    /** @deprecated Use getSellPrice() */
-    public double getSrp() { return sellPrice; }
-    /** @deprecated Use setSellPrice() */
-    public void setSrp(double v) { this.sellPrice = v; }
-
-    /** @deprecated product_code removed; returns empty string */
-    public String getProductCode() { return ""; }
-    /** @deprecated product_code removed; no-op */
-    public void setProductCode(String code) { /* no-op */ }
 }

@@ -9,7 +9,7 @@ Per academic requirements, the system has been simplified:
 ### Removed Features:
 
 - **User Management** - No more user table; authentication is now hardcoded (Owner/Cashier only)
-- **Categories Entity** - Now a simple field in products table
+- **Categories Entity** - Completely removed to simplify system
 - **Product Code** - Removed; using `product_id` as sole identifier
 - **Stock History** - Simplified audit trail
 
@@ -30,6 +30,8 @@ Per academic requirements, the system has been simplified:
 - `products.product_code` → **REMOVED**
 - `stock_history` table → **REMOVED**
 - `restock_log.user_id` → **REMOVED**
+- `transactions.notes` → **REPLACED** with `items`
+- `restock_log.notes` → **REMOVED**
 
 See [ENTITY_RELATIONSHIPS.md](ENTITY_RELATIONSHIPS.md) for complete documentation.
 
@@ -170,9 +172,8 @@ See [ENTITY_RELATIONSHIPS.md](ENTITY_RELATIONSHIPS.md) for detailed documentatio
 │  ─────────────  │
 │  product_id (PK)│
 │  product_name   │
-│  category       │
-│  purchase_price │◄── Unit Cost
-│  srp            │◄── Retail Price
+│  cost_per_unit   │◄── Unit Cost
+│  sell_price     │◄── Retail Price
 │  current_stock  │
 └────────┬────────┘
          │ 1:N
@@ -184,9 +185,9 @@ See [ENTITY_RELATIONSHIPS.md](ENTITY_RELATIONSHIPS.md) for detailed documentatio
 │─────────────────│    │─────────────────│
 │transaction_id(FK)│   │product_id (FK)  │
 │product_id (FK)  │    │quantity_added   │
-│quantity         │    │purchase_price   │
-│unit_price       │    │total_cost       │
-│purchase_price   │    └─────────────────┘
+│quantity         │    │cost_per_unit    │
+│sold_price       │    │total_cost       │
+│cost_at_sale     │    └─────────────────┘
 │item_total       │
 └────────┬────────┘
          │ N:1
@@ -199,6 +200,7 @@ See [ENTITY_RELATIONSHIPS.md](ENTITY_RELATIONSHIPS.md) for detailed documentatio
 │total_amount     │
 │discount_amount  │
 │final_amount     │
+│items            │
 └─────────────────┘
 ```
 
