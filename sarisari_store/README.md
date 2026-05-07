@@ -12,6 +12,7 @@ Per academic requirements, the system has been simplified:
 - **Categories Entity** - Completely removed to simplify system
 - **Product Code** - Removed; using `product_id` as sole identifier
 - **Stock History** - Simplified audit trail
+- **SQL Views** - Removed `low_stock_view` and `transaction_summary_view` (logic moved to Java DAOs)
 
 ### What Still Works:
 
@@ -30,6 +31,7 @@ Per academic requirements, the system has been simplified:
 - `products.product_code` → **REMOVED**
 - `stock_history` table → **REMOVED**
 - `restock_log.user_id` → **REMOVED**
+- `low_stock_view` & `transaction_summary_view` → **REMOVED** (redundant)
 - `transactions.notes` → **REPLACED** with `items`
 - `restock_log.notes` → **REMOVED**
 

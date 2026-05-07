@@ -168,6 +168,10 @@ Tracks all stock additions and their capital costs.
 ### Stock History Table (REMOVED)
 - **Reason:** Simplification; restock_log provides sufficient audit trail
 
+### SQL Views (REMOVED)
+- **Views:** `low_stock_view`, `transaction_summary_view`
+- **Reason:** Redundant; logic is handled directly in `ProductDAO` and `TransactionDAO`. The transaction summary view was also made obsolete by the addition of the `items` count column in the `transactions` table.
+
 ---
 
 ## 💰 Price Field Clarification

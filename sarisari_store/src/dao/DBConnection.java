@@ -6,10 +6,10 @@ import java.sql.SQLException;
 
 /**
  * DBConnection - Database Connection Manager
- * 
+ *
  * This class provides a centralized way to get database connections.
  * It uses JDBC to connect to MySQL/MariaDB.
- * 
+ *
  * NOTE: Update the credentials below to match your database setup.
  */
 public class DBConnection {

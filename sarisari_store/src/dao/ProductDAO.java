@@ -24,7 +24,7 @@ public class ProductDAO {
         String sql = "SELECT * FROM products WHERE product_id = ?";
         
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setInt(1, productId);
             ResultSet rs = stmt.executeQuery();
@@ -48,8 +48,8 @@ public class ProductDAO {
         String sql = "SELECT * FROM products WHERE is_active = TRUE ORDER BY product_name";
         
         try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql)) {
             
             while (rs.next()) {
                 products.add(mapResultSetToProduct(rs));
@@ -72,7 +72,7 @@ public class ProductDAO {
                      "product_name LIKE ? ORDER BY product_name";
         
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             String pattern = "%" + searchTerm + "%";
             stmt.setString(1, pattern);
@@ -120,8 +120,8 @@ public class ProductDAO {
         String sql = "SELECT COUNT(*) FROM products WHERE is_active = TRUE AND current_stock <= min_stock_level";
         
         try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql)) {
             
             if (rs.next()) {
                 return rs.getInt(1);
@@ -144,7 +144,7 @@ public class ProductDAO {
                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
             stmt.setString(1, product.getProductName());
             stmt.setString(2, product.getUnit());

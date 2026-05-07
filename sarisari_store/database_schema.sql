@@ -8,10 +8,6 @@
 CREATE DATABASE IF NOT EXISTS sarisari_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE sarisari_db;
 
--- Drop existing views
-DROP VIEW IF EXISTS low_stock_view;
-DROP VIEW IF EXISTS transaction_summary_view;
-
 -- Drop existing tables (in reverse order of dependencies)
 DROP TABLE IF EXISTS restock_log;
 DROP TABLE IF EXISTS transaction_items;
@@ -118,35 +114,6 @@ CREATE TABLE restock_log (
 
 CREATE INDEX idx_restocklog_product ON restock_log(product_id);
 CREATE INDEX idx_restocklog_date ON restock_log(restock_date);
-
--- =====================================================
--- VIEWS FOR COMMON QUERIES
--- =====================================================
-
--- View: Low stock products
-CREATE VIEW low_stock_view AS
-SELECT 
-    product_id,
-    product_name,
-    current_stock,
-    min_stock_level,
-    (current_stock - min_stock_level) AS stock_deficit
-FROM products
-WHERE current_stock <= min_stock_level AND is_active = TRUE
-ORDER BY stock_deficit ASC;
-
--- View: Transaction summary (simplified, no user info)
-CREATE VIEW transaction_summary_view AS
-SELECT 
-    t.transaction_id,
-    t.transaction_datetime,
-    t.total_amount,
-    t.discount_amount,
-    t.final_amount,
-    COUNT(ti.transaction_item_id) AS item_count
-FROM transactions t
-LEFT JOIN transaction_items ti ON t.transaction_id = ti.transaction_id
-GROUP BY t.transaction_id, t.transaction_datetime, t.total_amount, t.discount_amount, t.final_amount;
 
 -- =====================================================
 -- End of Schema
