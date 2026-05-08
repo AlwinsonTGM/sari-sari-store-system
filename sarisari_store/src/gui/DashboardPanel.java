@@ -82,10 +82,10 @@ public class DashboardPanel extends JPanel {
         JPanel todayCards = new JPanel(new GridLayout(1, 4, 12, 0));
         todayCards.setOpaque(false);
 
-        lblTodaySales  = new JLabel("₱0.00", JLabel.CENTER);
-        lblTodayProfit = new JLabel("₱0.00", JLabel.CENTER);
-        lblCapitalToday = new JLabel("₱0.00", JLabel.CENTER);
-        lblNetToday    = new JLabel("₱0.00", JLabel.CENTER);
+        lblTodaySales  = new JLabel("₱0.00");
+        lblTodayProfit = new JLabel("₱0.00");
+        lblCapitalToday = new JLabel("₱0.00");
+        lblNetToday    = new JLabel("₱0.00");
 
         todayCards.add(buildCard(" Sales",         lblTodaySales,  ThemeManager.success()));
         todayCards.add(buildCard(" Gross Profit",  lblTodayProfit, ThemeManager.primary()));
@@ -107,10 +107,10 @@ public class DashboardPanel extends JPanel {
         JPanel allTimeCards = new JPanel(new GridLayout(1, 4, 12, 0));
         allTimeCards.setOpaque(false);
 
-        lblAllRevenue = new JLabel("₱0.00", JLabel.CENTER);
-        lblAllProfit  = new JLabel("₱0.00", JLabel.CENTER);
-        lblAllCapital = new JLabel("₱0.00", JLabel.CENTER);
-        lblAllNet     = new JLabel("₱0.00", JLabel.CENTER);
+        lblAllRevenue = new JLabel("₱0.00");
+        lblAllProfit  = new JLabel("₱0.00");
+        lblAllCapital = new JLabel("₱0.00");
+        lblAllNet     = new JLabel("₱0.00");
 
         allTimeCards.add(buildCard(" Revenue",       lblAllRevenue, ThemeManager.success()));
         allTimeCards.add(buildCard(" Gross Profit",  lblAllProfit,  ThemeManager.primary()));
@@ -163,7 +163,6 @@ public class DashboardPanel extends JPanel {
 
         valueLabel.setFont(ThemeManager.fontBig());
         valueLabel.setForeground(accentColor);
-        valueLabel.setHorizontalAlignment(JLabel.LEFT);
 
         card.add(titleLbl,   BorderLayout.NORTH);
         card.add(valueLabel, BorderLayout.CENTER);
@@ -246,7 +245,7 @@ public class DashboardPanel extends JPanel {
         lblCapitalToday.setText("₱" + String.format("%,.2f", capitalToday));
 
         // Net turns green when positive, red when in deficit
-        lblNetToday.setText((netToday < 0 ? "\u2212\u20b1" : "\u20b1") + String.format("%,.2f", Math.abs(netToday)));
+        lblNetToday.setText((netToday < 0 ? "−₱" : "₱") + String.format("%,.2f", Math.abs(netToday)));
         lblNetToday.setForeground(netToday >= 0 ? ThemeManager.success() : ThemeManager.danger());
 
         //  All-Time

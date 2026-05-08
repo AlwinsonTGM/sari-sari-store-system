@@ -42,7 +42,7 @@ public class LoginFrame extends JFrame {
         // Header
         JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         headerPanel.setOpaque(false);
-        JLabel lblTitle = new JLabel("  Sari-Sari Store System");
+        JLabel lblTitle = new JLabel("Sari-Sari Store System");
         lblTitle.setFont(ThemeManager.fontTitle());
         lblTitle.setForeground(ThemeManager.primary());
         headerPanel.add(lblTitle);
