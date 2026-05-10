@@ -27,10 +27,10 @@ public class ProductDAO {
             PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setInt(1, productId);
-            ResultSet rs = stmt.executeQuery();
-            
-            if (rs.next()) {
-                return mapResultSetToProduct(rs);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToProduct(rs);
+                }
             }
         } catch (SQLException e) {
             System.err.println("Error getting product: " + e.getMessage());
@@ -77,10 +77,10 @@ public class ProductDAO {
             String pattern = "%" + searchTerm + "%";
             stmt.setString(1, pattern);
             
-            ResultSet rs = stmt.executeQuery();
-            
-            while (rs.next()) {
-                products.add(mapResultSetToProduct(rs));
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    products.add(mapResultSetToProduct(rs));
+                }
             }
         } catch (SQLException e) {
             System.err.println("Error searching products: " + e.getMessage());
@@ -164,9 +164,10 @@ public class ProductDAO {
             int affectedRows = stmt.executeUpdate();
             
             if (affectedRows > 0) {
-                ResultSet rs = stmt.getGeneratedKeys();
-                if (rs.next()) {
-                    product.setProductId(rs.getInt(1));
+                try (ResultSet rs = stmt.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        product.setProductId(rs.getInt(1));
+                    }
                 }
                 return true;
             }
@@ -219,33 +220,40 @@ public class ProductDAO {
      */
     public boolean restock(int productId, int quantity, double costPerUnit) {
         String stockSql = "UPDATE products SET current_stock = current_stock + ? WHERE product_id = ?";
+        String logSql = "INSERT INTO restock_log (product_id, quantity_added, cost_per_unit, total_cost) VALUES (?, ?, ?, ?)";
         
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(stockSql)) {
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false); // Start transaction
             
-            stmt.setInt(1, quantity);
-            stmt.setInt(2, productId);
-            boolean stockUpdated = stmt.executeUpdate() > 0;
-            
-            if (stockUpdated) {
-                // Log the capital cost — silent failure if table doesn't exist yet
-                try {
-                    String logSql = "INSERT INTO restock_log (product_id, quantity_added, cost_per_unit, total_cost) VALUES (?, ?, ?, ?)";
-                    PreparedStatement logStmt = conn.prepareStatement(logSql);
-                    logStmt.setInt(1, productId);
-                    logStmt.setInt(2, quantity);
-                    logStmt.setDouble(3, costPerUnit);
-                    logStmt.setDouble(4, quantity * costPerUnit);
-                    logStmt.executeUpdate();
-                    logStmt.close();
-                } catch (SQLException logEx) {
-                    System.err.println("[Capital Log] restock_log table may not exist yet: " + logEx.getMessage());
+            try (PreparedStatement stockStmt = conn.prepareStatement(stockSql);
+                 PreparedStatement logStmt = conn.prepareStatement(logSql)) {
+                
+                // 1. Update stock
+                stockStmt.setInt(1, quantity);
+                stockStmt.setInt(2, productId);
+                
+                if (stockStmt.executeUpdate() == 0) {
+                    conn.rollback();
+                    return false;
                 }
+                
+                // 2. Log the capital cost
+                logStmt.setInt(1, productId);
+                logStmt.setInt(2, quantity);
+                logStmt.setDouble(3, costPerUnit);
+                logStmt.setDouble(4, quantity * costPerUnit);
+                logStmt.executeUpdate();
+                
+                conn.commit(); // Both succeed
+                return true;
+                
+            } catch (SQLException e) {
+                conn.rollback(); // One fails, both fail
+                System.err.println("Error during restock transaction: " + e.getMessage());
+                return false;
             }
-            
-            return stockUpdated;
         } catch (SQLException e) {
-            System.err.println("Error restocking product: " + e.getMessage());
+            System.err.println("Database connection error: " + e.getMessage());
         }
         
         return false;

@@ -27,7 +27,6 @@ import java.util.List;
  */
 public class SalesPanel extends JPanel {
 
-    private final boolean isOwner;
     private ProductDAO productDAO;
     private TransactionDAO transactionDAO;
 
@@ -45,8 +44,7 @@ public class SalesPanel extends JPanel {
     private JLabel        lblTotal;
     private JTextField    txtDiscount;
 
-    public SalesPanel(boolean isOwner) {
-        this.isOwner        = isOwner;
+    public SalesPanel() {
         this.productDAO     = new ProductDAO();
         this.transactionDAO = new TransactionDAO();
         this.cartItems      = new ArrayList<>();
@@ -376,7 +374,12 @@ public class SalesPanel extends JPanel {
     private void applyDiscount() {
         try {
             double discount = Double.parseDouble(txtDiscount.getText().trim());
-            if (discount < 0) discount = 0;
+            if (discount < 0) {
+                JOptionPane.showMessageDialog(this, "Discount cannot be negative.", "Invalid Discount", JOptionPane.WARNING_MESSAGE);
+                txtDiscount.setText("0");
+                updateTotals();
+                return;
+            }
             double subtotal = calculateSubtotal();
             if (discount > subtotal) {
                 JOptionPane.showMessageDialog(this, "Discount cannot exceed subtotal.", "Invalid Discount", JOptionPane.WARNING_MESSAGE);
@@ -430,7 +433,17 @@ public class SalesPanel extends JPanel {
 
         double subtotal = calculateSubtotal();
         double discount = 0;
-        try { discount = Double.parseDouble(txtDiscount.getText().trim()); } catch (NumberFormatException ignored) {}
+        try { 
+            discount = Double.parseDouble(txtDiscount.getText().trim()); 
+            if (discount < 0) {
+                JOptionPane.showMessageDialog(this, "Discount cannot be negative.", "Invalid Discount", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (discount > subtotal) {
+                JOptionPane.showMessageDialog(this, "Discount cannot exceed subtotal.", "Invalid Discount", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+        } catch (NumberFormatException ignored) {}
         double total = subtotal - discount;
 
         int confirm = JOptionPane.showConfirmDialog(this,

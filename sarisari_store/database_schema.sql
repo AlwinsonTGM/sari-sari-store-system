@@ -49,7 +49,9 @@ INSERT INTO products (product_name, unit, cost_per_unit, sell_price, current_sto
 ('Safeguard Soap 90g', 'piece', 18.00, 28.00, 40, 10),
 ('Colgate Toothpaste 50ml', 'piece', 25.00, 38.00, 25, 5),
 ('Nescafe 3in1 Original', 'piece', 5.00, 8.00, 200, 50),
-('Gardenia Loaf Bread', 'piece', 45.00, 60.00, 15, 5);
+('Gardenia Loaf Bread', 'piece', 45.00, 60.00, 15, 5),
+('Piattos Cheese 85g', 'piece', 28.00, 35.00, 40, 10),
+('Great Taste White Twin', 'piece', 10.00, 15.00, 100, 20);
 
 -- =====================================================
 -- 2. TRANSACTIONS TABLE (formerly sales)
@@ -62,7 +64,10 @@ CREATE TABLE transactions (
     total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     discount_amount DECIMAL(10,2) DEFAULT 0.00,
     final_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-    items INT DEFAULT 0
+    items INT DEFAULT 0,
+    
+    -- Constraints
+    CONSTRAINT chk_discount CHECK (discount_amount >= 0)
 );
 
 -- Indexes for performance

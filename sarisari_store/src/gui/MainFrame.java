@@ -86,7 +86,7 @@ public class MainFrame extends JFrame {
         ThemeManager.applyTabbedPaneTheme(tabbedPane);
 
         dashboardPanel    = new DashboardPanel();
-        salesPanel        = new SalesPanel(isOwner);
+        salesPanel        = new SalesPanel();
         productPanel      = new ProductPanel(isOwner);
         salesHistoryPanel = new SalesHistoryPanel();
 

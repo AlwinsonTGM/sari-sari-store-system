@@ -43,7 +43,6 @@ public class ProductPanel extends JPanel {
     private JComboBox<String> cmbSort;
     
     // Form fields for add/edit
-    private JTextField txtProductCode;
     private JTextField txtProductName;
     private JTextField txtUnit;
     private JTextField txtPurchasePrice;
@@ -59,7 +58,7 @@ public class ProductPanel extends JPanel {
         this.isOwner  = isOwner;
         this.productDAO = new ProductDAO();
         
-        setLayout(new BorderLayout(10, 10));
+        setLayout(new BorderLayout(0, 0));
         setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
         setBackground(ThemeManager.bg());
         
@@ -572,7 +571,7 @@ public class ProductPanel extends JPanel {
         panel.setBackground(ThemeManager.surface());
         
         // Header
-        JLabel header = new JLabel("\uD83D\uDCE6 " + product.getProductName());
+        JLabel header = new JLabel("~" + product.getProductName());
         header.setFont(ThemeManager.fontSection());
         header.setForeground(ThemeManager.primary());
         panel.add(header, BorderLayout.NORTH);
@@ -710,7 +709,6 @@ public class ProductPanel extends JPanel {
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
         // Initialize fields
-        txtProductCode = new JTextField(20);
         txtProductName = new JTextField(20);
         txtUnit = new JTextField(20);
         txtPurchasePrice = new JTextField(20);
@@ -816,15 +814,24 @@ public class ProductPanel extends JPanel {
         }
         
         try {
+            // Fix 1: Validate all numeric fields (prevents "ABC" crashes)
             double purchasePrice = Double.parseDouble(txtPurchasePrice.getText().trim());
             double srp = Double.parseDouble(txtSRP.getText().trim());
+            int stock = Integer.parseInt(txtStock.getText().trim());
+            int minStock = Integer.parseInt(txtMinStock.getText().trim());
+            
+            // Fix 2: Check for negative values
+            if (purchasePrice < 0 || srp < 0 || stock < 0 || minStock < 0) {
+                JOptionPane.showMessageDialog(this, "Prices and stock levels cannot be negative.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return false;
+            }
             
             if (srp < purchasePrice) {
                 JOptionPane.showMessageDialog(this, "SRP must be greater than or equal to Purchase Price.", "Validation Error", JOptionPane.WARNING_MESSAGE);
                 return false;
             }
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Please enter valid numbers for prices.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Please enter valid numbers for prices and stock levels.", "Validation Error", JOptionPane.WARNING_MESSAGE);
             return false;
         }
         

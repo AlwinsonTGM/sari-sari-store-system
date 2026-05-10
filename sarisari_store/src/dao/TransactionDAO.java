@@ -29,66 +29,75 @@ public class TransactionDAO {
      * @return true if successful
      */
     public boolean createTransaction(Transaction transaction) {
-        Connection conn = null;
-        try {
-            conn = getConnection();
+        String txSql = "INSERT INTO transactions (total_amount, discount_amount, final_amount, items) " +
+                       "VALUES (?, ?, ?, ?)";
+        String itemSql = "INSERT INTO transaction_items (transaction_id, product_id, quantity, sold_price, cost_at_sale, item_total) " +
+                         "VALUES (?, ?, ?, ?, ?, ?)";
+        String stockSql = "UPDATE products SET current_stock = current_stock - ? " +
+                          "WHERE product_id = ? AND current_stock >= ?";
+
+        try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
 
-            // 1. Insert transaction header
-            String txSql = "INSERT INTO transactions (total_amount, discount_amount, final_amount, items) " +
-                           "VALUES (?, ?, ?, ?)";
-            PreparedStatement txStmt = conn.prepareStatement(txSql, Statement.RETURN_GENERATED_KEYS);
-            txStmt.setDouble(1, transaction.getTotalAmount());
-            txStmt.setDouble(2, transaction.getDiscountAmount());
-            txStmt.setDouble(3, transaction.getFinalAmount());
-            txStmt.setInt(4, transaction.getItems().size());
+            try (PreparedStatement txStmt = conn.prepareStatement(txSql, Statement.RETURN_GENERATED_KEYS);
+                 PreparedStatement itemStmt = conn.prepareStatement(itemSql);
+                 PreparedStatement stockStmt = conn.prepareStatement(stockSql)) {
 
-            if (txStmt.executeUpdate() == 0) { conn.rollback(); return false; }
+                // 1. Insert transaction header
+                txStmt.setDouble(1, transaction.getTotalAmount());
+                txStmt.setDouble(2, transaction.getDiscountAmount());
+                txStmt.setDouble(3, transaction.getFinalAmount());
+                txStmt.setInt(4, transaction.getItems().size());
 
-            ResultSet keys = txStmt.getGeneratedKeys();
-            int txId;
-            if (keys.next()) {
-                txId = keys.getInt(1);
-                transaction.setTransactionId(txId);
-            } else { conn.rollback(); return false; }
+                if (txStmt.executeUpdate() == 0) {
+                    conn.rollback();
+                    return false;
+                }
 
-            // 2. Insert line items and deduct stock
-            String itemSql = "INSERT INTO transaction_items (transaction_id, product_id, quantity, sold_price, cost_at_sale, item_total) " +
-                             "VALUES (?, ?, ?, ?, ?, ?)";
-            String stockSql = "UPDATE products SET current_stock = current_stock - ? " +
-                              "WHERE product_id = ? AND current_stock >= ?";
+                // 2. Get generated ID
+                int txId;
+                try (ResultSet keys = txStmt.getGeneratedKeys()) {
+                    if (keys.next()) {
+                        txId = keys.getInt(1);
+                        transaction.setTransactionId(txId);
+                    } else {
+                        conn.rollback();
+                        return false;
+                    }
+                }
 
-            PreparedStatement itemStmt = conn.prepareStatement(itemSql);
-            PreparedStatement stockStmt = conn.prepareStatement(stockSql);
+                // 3. Insert line items and deduct stock
+                for (TransactionItem item : transaction.getItems()) {
+                    itemStmt.setInt(1, txId);
+                    itemStmt.setInt(2, item.getProductId());
+                    itemStmt.setInt(3, item.getQuantity());
+                    itemStmt.setDouble(4, item.getSoldPrice());
+                    itemStmt.setDouble(5, item.getCostAtSale());
+                    itemStmt.setDouble(6, item.getItemTotal());
+                    itemStmt.addBatch();
 
-            for (TransactionItem item : transaction.getItems()) {
-                itemStmt.setInt(1, txId);
-                itemStmt.setInt(2, item.getProductId());
-                itemStmt.setInt(3, item.getQuantity());
-                itemStmt.setDouble(4, item.getSoldPrice());
-                itemStmt.setDouble(5, item.getCostAtSale());
-                itemStmt.setDouble(6, item.getItemTotal());
-                itemStmt.addBatch();
+                    stockStmt.setInt(1, item.getQuantity());
+                    stockStmt.setInt(2, item.getProductId());
+                    stockStmt.setInt(3, item.getQuantity());
+                    
+                    if (stockStmt.executeUpdate() == 0) {
+                        conn.rollback();
+                        return false; // Insufficient stock
+                    }
+                }
 
-                stockStmt.setInt(1, item.getQuantity());
-                stockStmt.setInt(2, item.getProductId());
-                stockStmt.setInt(3, item.getQuantity());
-                int updated = stockStmt.executeUpdate();
-                if (updated == 0) { conn.rollback(); return false; } // Insufficient stock
+                itemStmt.executeBatch();
+                conn.commit();
+                return true;
+
+            } catch (SQLException e) {
+                conn.rollback();
+                System.err.println("Error in transaction logic: " + e.getMessage());
+                return false;
             }
-
-            itemStmt.executeBatch();
-            conn.commit();
-            return true;
-
         } catch (SQLException e) {
-            System.err.println("Error creating transaction: " + e.getMessage());
-            if (conn != null) { try { conn.rollback(); } catch (SQLException ex) {  } }
+            System.err.println("Database connection error: " + e.getMessage());
             return false;
-        } finally {
-            if (conn != null) {
-                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException e) {  }
-            }
         }
     }
 
@@ -104,11 +113,12 @@ public class TransactionDAO {
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, transactionId);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                Transaction t = mapRow(rs);
-                t.setItems(getItems(transactionId));
-                return t;
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    Transaction t = mapRow(rs);
+                    t.setItems(getItems(transactionId));
+                    return t;
+                }
             }
         } catch (SQLException e) {
             System.err.println("Error getting transaction: " + e.getMessage());
@@ -161,8 +171,9 @@ public class TransactionDAO {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setDate(1, fromDate);
             stmt.setDate(2, toDate);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) list.add(mapRow(rs));
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) list.add(mapRow(rs));
+            }
         } catch (SQLException e) {
             System.err.println("Error getting transactions by date range: " + e.getMessage());
         }
@@ -209,9 +220,10 @@ public class TransactionDAO {
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, limit);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                result.add(new Object[]{rs.getString("product_name"), rs.getInt("total_qty")});
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    result.add(new Object[]{rs.getString("product_name"), rs.getInt("total_qty")});
+                }
             }
         } catch (SQLException e) {
             System.err.println("Error getting top products: " + e.getMessage());
@@ -231,18 +243,19 @@ public class TransactionDAO {
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, transactionId);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                TransactionItem item = new TransactionItem();
-                item.setTransactionItemId(rs.getInt("transaction_item_id"));
-                item.setTransactionId(rs.getInt("transaction_id"));
-                item.setProductId(rs.getInt("product_id"));
-                item.setProductName(rs.getString("product_name"));
-                item.setQuantity(rs.getInt("quantity"));
-                item.setSoldPrice(rs.getDouble("sold_price"));
-                item.setCostAtSale(rs.getDouble("cost_at_sale"));
-                item.setItemTotal(rs.getDouble("item_total"));
-                items.add(item);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    TransactionItem item = new TransactionItem();
+                    item.setTransactionItemId(rs.getInt("transaction_item_id"));
+                    item.setTransactionId(rs.getInt("transaction_id"));
+                    item.setProductId(rs.getInt("product_id"));
+                    item.setProductName(rs.getString("product_name"));
+                    item.setQuantity(rs.getInt("quantity"));
+                    item.setSoldPrice(rs.getDouble("sold_price"));
+                    item.setCostAtSale(rs.getDouble("cost_at_sale"));
+                    item.setItemTotal(rs.getDouble("item_total"));
+                    items.add(item);
+                }
             }
         } catch (SQLException e) {
             System.err.println("Error getting transaction items: " + e.getMessage());

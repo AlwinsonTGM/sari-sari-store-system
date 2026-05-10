@@ -26,7 +26,7 @@ public class Transaction {
     
     // Constructor for new transactions
     public Transaction(double discountAmount) {
-        this.discountAmount = discountAmount;
+        this.discountAmount = Math.max(0, discountAmount);
         this.items = new ArrayList<>();
         this.transactionDatetime = new Timestamp(System.currentTimeMillis());
     }
@@ -72,7 +72,7 @@ public class Transaction {
     }
     
     public void setDiscountAmount(double discountAmount) {
-        this.discountAmount = discountAmount;
+        this.discountAmount = Math.max(0, discountAmount);
     }
     
     public double getFinalAmount() {
